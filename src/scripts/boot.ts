@@ -200,5 +200,10 @@ function startGraphics(): void {
 
 const whenIdle = (fn: () => void) =>
   'requestIdleCallback' in window ? requestIdleCallback(fn, { timeout: 1500 }) : setTimeout(fn, 200);
-if (document.readyState === 'complete') whenIdle(startGraphics);
-else addEventListener('load', () => whenIdle(startGraphics), { once: true });
+// After the first paint, then load and an idle moment. Load alone can come
+// before the first paint (the hero text waits on its fonts), and the engine
+// shares the GSAP chunk with the intro, which must not compete with it.
+afterFirstPaint(() => {
+  if (document.readyState === 'complete') whenIdle(startGraphics);
+  else addEventListener('load', () => whenIdle(startGraphics), { once: true });
+});

@@ -586,3 +586,14 @@ nothing from other origins and contain no frames. This environment can't
 reach the preview, so the diagnosis rests on where the box appears, what it
 looks like, and the CSP. To confirm it, right-click the box → Inspect: it
 should be an iframe from `app.netlify.com`, with a CSP error in the console.
+
+**The engine waits for the first paint.** CI failed "the intro chunk is
+requested only after the first paint" on this PR, and the same test failed 5
+runs in 12 on main's code in this environment. The intro itself was fine: it
+waits for the first contentful paint. But the engine also imports the GSAP
+chunk (for the scroll choreography), and it started at page load plus an idle
+moment. Load can come before the first paint, because the hero text waits on
+its fonts, so GSAP was sometimes fetched while the hero was still painting,
+despite the comment saying the engine loads after first paint. Now the engine
+waits for the first paint too, then load and an idle moment. The test passed
+16 runs in 16. _Where:_ the end of `src/scripts/boot.ts`.
