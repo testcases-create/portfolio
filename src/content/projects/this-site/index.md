@@ -13,13 +13,13 @@ myScope: Design, the graphics engine, the content system, tests and CI
 stack: [Astro, TypeScript, three.js (WebGPU and TSL), GSAP, Playwright, Vitest, Lighthouse CI]
 metrics:
   - label: Graphics engine
-    value: 303.9 KB
+    value: 304.6 KB
     baseline: 320 KB budget
     measuredBy: Gzipped JavaScript the engine adds after first paint, measured on the built site by scripts/budgets.ts in CI
   - label: JavaScript before idle
-    value: 10.8 KB
+    value: 10.9 KB
     baseline: 50 KB budget
-    measuredBy: Gzipped initial JavaScript on project pages (40.2 KB on Home, which adds the one-time intro), same script
+    measuredBy: Gzipped initial JavaScript on project pages (40.3 KB on Home, which adds the one-time intro), same script
   - label: GPU kernel against CPU spec
     value: < 0.2% error
     measuredBy: Playwright steps the WebGPU and WebGL2 kernels once and compares the buffers with the CPU simulation, in CI on Chrome 153
@@ -91,20 +91,20 @@ Pages are static Astro. One `#world` element persists across navigation, and pag
 
 ## Evaluation
 
-CI runs lint, type checking, 142 unit tests, 95 end-to-end tests with axe accessibility checks in both themes, the size budgets and Lighthouse CI on every push.
+CI runs lint, type checking, 142 unit tests, 103 end-to-end tests with axe accessibility checks in both themes, the size budgets and Lighthouse CI on every push.
 
-| Check                                                    | Result                                                                                                                |
-| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Graphics engine after first paint                        | 303.9 KB of 320 KB                                                                                                    |
-| JavaScript before idle                                   | 9.6–10.8 KB (Home 40.2 KB) of 50 KB                                                                                   |
-| Architecture explorer, loaded on demand                  | 3.7 KB of 25 KB                                                                                                       |
-| Lab demos, loaded on demand                              | 5.4–7.6 KB each, of 25–35 KB                                                                                          |
-| GPU particle kernel against CPU spec (WebGL2 and WebGPU) | under 0.2% error                                                                                                      |
-| GPU training kernels against CPU spec (40 steps)         | largest difference 0.00000012                                                                                         |
-| High tier, MacBook Air 13-inch (Apple M5, 16 GB), Chrome | 61 fps, 16.6 ms frames (the display's 60 Hz), 1.44 ms of GPU time; 65,536 particles in 1 draw call and 1 compute pass |
-| Low tier CPU simulation, 4,096 particles                 | 4.0 ms a step on the build machine                                                                                    |
-| Lighthouse mobile, six page types                        | performance 99–100, 0–23 ms blocking                                                                                  |
-| Home largest paint (hero text), 12 runs                  | median 1.66 s, worst 1.81 s, of 2.0 s                                                                                 |
+| Check                                                    | Result                                                                                                                              |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Graphics engine after first paint                        | 304.6 KB of 320 KB                                                                                                                  |
+| JavaScript before idle                                   | 9.7–10.9 KB (Home 40.3 KB) of 50 KB                                                                                                 |
+| Architecture explorer, loaded on demand                  | 3.7 KB of 25 KB                                                                                                                     |
+| Lab demos, loaded on demand                              | 5.4–7.6 KB each, of 25–35 KB                                                                                                        |
+| GPU particle kernel against CPU spec (WebGL2 and WebGPU) | under 0.2% error                                                                                                                    |
+| GPU training kernels against CPU spec (40 steps)         | largest difference 0.00000012                                                                                                       |
+| High tier, MacBook Air 13-inch (Apple M5, 16 GB), Chrome | 61 fps, 16.6 ms frames (the display's 60 Hz), 1.44 ms of GPU time (light theme); 65,536 particles in 1 draw call and 1 compute pass |
+| Low tier CPU simulation, 4,096 particles                 | 4.0 ms a step on the build machine                                                                                                  |
+| Lighthouse mobile, six page types                        | performance 99–100, 0–23 ms blocking                                                                                                |
+| Home largest paint (hero text), 12 runs                  | median 1.66 s, worst 1.81 s, of 2.0 s                                                                                               |
 
 ## Deployment and operations
 
@@ -112,7 +112,7 @@ Netlify builds production strictly: the build fails while any placeholder remain
 
 ## Results
 
-The site meets every budget in CI, and the hero text is always the largest paint. On a MacBook Air 13-inch (Apple M5, 16 GB) in Chrome, the high tier runs its 65,536 particles in one compute pass and one draw call at 61 frames per second. The 16.6 ms frame time is the display's 60 Hz refresh, not the work: the GPU needs 1.44 ms a frame, under a tenth of the budget, so the world leaves the machine nearly idle. The build machine has no GPU and renders in software at 2 to 7 frames per second, which says nothing about real hardware. On its CPU the low tier's simulation step takes 4.0 ms for 4,096 particles, which leaves room inside a 33 ms frame on a phone a few times slower. A mid-range phone on the low tier is the next measurement to take.
+The site meets every budget in CI, and the hero text is always the largest paint. On a MacBook Air 13-inch (Apple M5, 16 GB) in Chrome, the high tier runs its 65,536 particles in one compute pass and one draw call at 61 frames per second. The 16.6 ms frame time is the display's 60 Hz refresh, not the work: the GPU needs 1.44 ms a frame in the light theme, under a tenth of the budget, so the world leaves the machine nearly idle. The build machine has no GPU and renders in software at 2 to 7 frames per second, which says nothing about real hardware. On its CPU the low tier's simulation step takes 4.0 ms for 4,096 particles, which leaves room inside a 33 ms frame on a phone a few times slower. A mid-range phone on the low tier is the next measurement to take.
 
 ## What I'd do next
 

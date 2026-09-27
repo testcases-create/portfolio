@@ -8,23 +8,28 @@ import {
   FORMATION_NAMES,
   K,
   buildFormations,
-  scatter,
+  seed,
   type FormationName,
 } from './formations';
+import { createFrameTimer } from './gpu-timer';
 import { createLabels } from './labels';
 import { applySettings, createBloomPipeline, createParticles, createRenderUniforms } from './render';
 import type { CpuState } from './sim.cpu';
 import { createGpuSim, createUniforms, writeUniforms } from './sim.gpu';
-import { signals, type SimInputs } from './sim.shared';
+import { grow, signals, type SimInputs } from './sim.shared';
 import type { RenderSettings, ThemeColours } from './theme';
 import { TIERS, createProbe, createResolution, pixelRatio, type RenderTier } from './tiers';
 
 export const FOV = 35;
 /** Wide screens: the world composes into this horizontal band, right of the text column. */
 export const REGION: [number, number] = [0.46, 0.97];
+/** Width of the mask's fade at the text edge, as a fraction of the viewport width. */
+const MASK_FADE = 0.06;
 /** Seconds: particles blend between formations quickly; the camera follows slowly. */
 const WEIGHT_TAU = 0.25;
 const CAMERA_TAU = 0.9;
+/** Seconds: how quickly the engine's intro progress follows the timeline (and a skip). */
+const INTRO_EASE = 0.12;
 
 /**
  * The architecture explorer's view: the pose to frame, and the part of the
@@ -85,7 +90,6 @@ export async function createWorld(
     alpha: true,
     forceWebGL: tier.backend !== 'webgpu',
     powerPreference: 'high-performance',
-    trackTimestamp: tier.backend === 'webgpu',
   });
   await renderer.init();
   let failed = false;
@@ -102,12 +106,22 @@ export async function createWorld(
   renderer.setClearColor(0x000000, 0);
   renderer.domElement.className = 'world-canvas';
   host.prepend(renderer.domElement);
+  const backend = renderer.backend as {
+    isWebGPUBackend?: boolean;
+    device?: GPUDevice;
+    context?: GPUCanvasContext;
+  };
+  const timer =
+    backend.isWebGPUBackend && backend.device && backend.context
+      ? createFrameTimer(backend.device, backend.context)
+      : null;
 
   const n = hooks.particles ?? tier.particles;
   const { data: form, hash } = buildFormations(n);
   const start = new Float32Array(n * 4);
-  if (state.assemble() < 1) scatter(start, n);
-  else
+  // The intro's seed: where it starts, and the centre it grows from.
+  const centre = seed(start, form, n);
+  if (state.assemble() >= 1)
     for (let i = 0; i < n; i++)
       start.set(form.subarray(i * FLOATS_PER_PARTICLE, i * FLOATS_PER_PARTICLE + 3), i * 4);
 
@@ -154,8 +168,9 @@ export async function createWorld(
   let last = performance.now();
   let fps = 60;
   let frameMs = 16.7;
-  let gpuMs: number | null = null;
   let frames = 0;
+  /** Intro progress as the engine shows it: state.assemble(), eased. */
+  let intro = state.assemble();
   let formation: FormationName | null = null;
   const inputs: SimInputs = {
     time: 0,
@@ -168,6 +183,7 @@ export async function createWorld(
     pointerStrength: 0,
     alpha: tier.alpha,
     tintBoost: 0,
+    centre,
     neutral: [1, 1, 1],
     sde: [1, 1, 1],
     llm: [1, 1, 1],
@@ -188,6 +204,21 @@ export async function createWorld(
     });
   }
 
+  /**
+   * Wide screens: where the text marked [data-world-text] actually ends, as a
+   * fraction of the width. The world's mask starts right of it, so particles
+   * never sit over the words, whatever the width or font does to the column.
+   */
+  function textEdge(w: number): number {
+    const range = document.createRange();
+    let right = 0;
+    for (const el of document.querySelectorAll('[data-world-text]')) {
+      range.selectNodeContents(el);
+      right = Math.max(right, range.getBoundingClientRect().right);
+    }
+    return right / w;
+  }
+
   function resize() {
     const w = Math.max(1, host.clientWidth);
     const h = Math.max(1, host.clientHeight);
@@ -198,7 +229,7 @@ export async function createWorld(
       camera.setViewOffset(w, h, -(centre - 0.5) * w, 0, w, h);
     } else camera.clearViewOffset();
     camera.updateProjectionMatrix();
-    R.maskFrom.value = size.wide ? REGION[0] : 0;
+    R.maskFrom.value = size.wide ? Math.max(REGION[0], textEdge(w) + MASK_FADE + 0.01) : 0;
     R.maskTop.value = -1;
     R.maskBottom.value = 2;
     renderer.setPixelRatio(pixelRatio(devicePixelRatio, resolution.scale));
@@ -306,6 +337,11 @@ export async function createWorld(
 
     const s = state.theme.settings;
     R.size.value = tier.size * s.sizeScale * (c.distance / 15);
+    // The intro fades particles in as they gather. Opacity follows the formation's
+    // area (grow²), so the small seed is as light as the full formation, not a blot.
+    const a = intro;
+    const fade = Math.min(1, a / 0.25);
+    R.reveal.value = a >= 1 ? 1 : fade * fade * grow(a) ** 2;
     R.depthNear.value = c.distance - pose.radius;
     R.depthFar.value = c.distance + pose.radius * 1.2;
     // A farther camera puts more particles on each pixel: thin the alpha so it doesn't saturate.
@@ -334,16 +370,22 @@ export async function createWorld(
     state.pointer.x = approach(state.pointer.x, state.pointer.tx, dt, 0.6);
     state.pointer.y = approach(state.pointer.y, state.pointer.ty, dt, 0.6);
 
+    // Follow the intro's timeline, easing rather than jumping when it is skipped,
+    // so the seed unfolds in about half a second instead of flashing at full opacity.
+    intro = approach(intro, state.assemble(), dt, INTRO_EASE);
+    if (intro > 0.995) intro = 1;
     updateCamera(dt);
     const sig = signals(state.time);
     Object.assign(inputs, {
       time: state.time,
       dt,
-      assemble: state.assemble(),
+      assemble: intro,
       weights: state.weights,
       ...sig,
     });
 
+    // Stats for nerds: time every 30th frame's GPU work (WebGPU only).
+    const timed = !!timer && frames % 30 === 0 && timer.begin();
     if (cpu && stepCpu) {
       stepCpu(cpu, inputs);
       gpu.pos.value.needsUpdate = true;
@@ -359,6 +401,7 @@ export async function createWorld(
     setGlow(bloomNow);
     if (bloomNow) pipeline?.render();
     else renderer.render(scene, camera);
+    if (timed) timer?.end();
 
     labels.update(camera, size.w, size.h, state.weights[2] ?? 0, sig.cursor);
 
@@ -378,12 +421,6 @@ export async function createWorld(
       probeNote = `${tierName}: median ${probe.median.toFixed(1)} ms, kept`;
     }
     if (resolution.update(ms) !== null) resize();
-    if (tier.backend === 'webgpu' && frames % 30 === 0) {
-      void Promise.all([
-        renderer.resolveTimestampsAsync('render'),
-        renderer.resolveTimestampsAsync('compute'),
-      ]).then(([r, c]) => (gpuMs = r === undefined && c === undefined ? null : (r ?? 0) + (c ?? 0)));
-    }
   }
 
   /**
@@ -412,6 +449,8 @@ export async function createWorld(
 
   applyTheme();
   resize();
+  // Web fonts change where the text ends; measure again once they're in.
+  void document.fonts?.ready.then(() => !disposed && resize());
 
   return {
     tier: tierName,
@@ -454,7 +493,7 @@ export async function createWorld(
       return {
         fps,
         frameMs,
-        gpuMs,
+        gpuMs: timer?.ms ?? null,
         drawCalls: info.render.drawCalls,
         computeCalls: info.compute.frameCalls,
         renderScale: pixelRatio(devicePixelRatio, resolution.scale),
@@ -482,6 +521,7 @@ export async function createWorld(
     },
     dispose() {
       disposed = true;
+      timer?.dispose();
       void renderer.setAnimationLoop(null);
       labels.dispose();
       material.dispose();

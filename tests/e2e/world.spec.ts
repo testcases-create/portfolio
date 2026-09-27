@@ -162,6 +162,7 @@ async function parity(page: Page, backend: 'webgl2' | 'webgpu') {
       pointerStrength: 0.8,
       alpha: 0.5,
       tintBoost: 0.1,
+      centre: [0.4, -0.3, 0.2],
       neutral: colour.neutral as SimInputs['neutral'],
       sde: colour.sde as SimInputs['sde'],
       llm: colour.llm as SimInputs['llm'],

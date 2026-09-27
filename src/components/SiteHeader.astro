@@ -29,11 +29,27 @@ const path = Astro.url.pathname;
     </ul>
   </nav>
   <div class="world-controls">
-    <button type="button" class="button" data-action="pause" aria-pressed="false">
-      Pause motion
-    </button>
-    <button type="button" class="button" data-action="theme" aria-pressed="false">
-      Light theme
+    {/* Pause stops every animation on the site (WCAG 2.2.2). The name stays
+        "Pause motion"; aria-pressed says whether it is paused, and the icon and
+        tooltip swap to "play" while it is. */}
+    <button
+      type="button"
+      class="button icon"
+      data-action="pause"
+      aria-pressed="false"
+      aria-label="Pause motion"
+    >
+      <svg class="when-playing" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <rect x="3.5" y="2.5" width="3" height="11" rx="1" />
+        <rect x="9.5" y="2.5" width="3" height="11" rx="1" />
+      </svg>
+      <svg class="when-paused" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <path d="M4.5 2.9v10.2a.8.8 0 0 0 1.2.7l8.2-5.1a.8.8 0 0 0 0-1.4L5.7 2.2a.8.8 0 0 0-1.2.7Z" />
+      </svg>
+      <span class="tip" aria-hidden="true">
+        <span class="when-playing">Pause motion</span>
+        <span class="when-paused">Play motion</span>
+      </span>
     </button>
   </div>
 </header>
@@ -80,8 +96,54 @@ const path = Astro.url.pathname;
     margin-inline-start: auto;
   }
 
-  .world-controls .button {
-    min-height: 2.5rem;
+  .icon {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+  }
+
+  .icon svg {
+    width: 1rem;
+    height: 1rem;
+    fill: currentColor;
+  }
+
+  .icon[aria-pressed='true'] .when-playing,
+  .icon[aria-pressed='false'] .when-paused {
+    display: none;
+  }
+
+  /* Shown on hover and keyboard focus. Visual only: assistive tech reads the
+     button's label and pressed state. */
+  .tip {
+    position: absolute;
+    inset-block-start: calc(100% + var(--space-2));
+    inset-inline-end: 0;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--raised);
+    color: var(--text);
     font-size: var(--step-small);
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 120ms;
+  }
+
+  /* Stays open while the pointer is over it (it sits inside the button), and
+     Escape closes it (boot.ts), as WCAG 1.4.13 asks of content on hover or focus. */
+  .icon:is(:hover, :focus-visible):not([data-tip-closed]) .tip {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tip {
+      transition: none;
+    }
   }
 </style>

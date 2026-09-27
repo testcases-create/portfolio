@@ -65,15 +65,12 @@ const fullTitle = title === strip(site.name) ? title : `${title} · ${strip(site
     <Font cssVariable="--font-archivo" preload />
     <Font cssVariable="--font-source-serif" />
     <script is:inline>
-      // Before first paint: restore the remembered theme so there is no flash, and
-      // decide whether the one-time hero intro plays (never with reduced motion).
+      // Before first paint: follow the device's light or dark setting, so there is
+      // no flash, and decide whether the one-time hero intro plays (never with
+      // reduced motion). boot.ts keeps the theme in step if the setting changes.
       (() => {
         const root = document.documentElement;
-        try {
-          if (localStorage.getItem('pref:theme') === 'light') root.dataset.theme = 'light';
-        } catch {
-          /* storage blocked: keep the default dark theme */
-        }
+        root.dataset.theme = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
         let seen = false;
         try {
           seen = sessionStorage.getItem('intro:seen') === '1';

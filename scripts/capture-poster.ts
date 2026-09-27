@@ -29,11 +29,11 @@ const browser = await chromium.launch({
 let failed = false;
 for (const theme of ['dark', 'light'] as const) {
   for (const shot of shots) {
-    const context = await browser.newContext({ viewport: { width: shot.width, height: shot.height } });
-    await context.addInitScript((t) => {
-      localStorage.setItem('pref:theme', t);
-      sessionStorage.setItem('intro:seen', '1');
-    }, theme);
+    const context = await browser.newContext({
+      viewport: { width: shot.width, height: shot.height },
+      colorScheme: theme, // the theme follows the device's setting
+    });
+    await context.addInitScript(() => sessionStorage.setItem('intro:seen', '1'));
     const page = await context.newPage();
     await page.goto(`${BASE}/dev/world/?tier=${TIER}`);
     await page.waitForFunction(() => document.documentElement.dataset.worldReady === 'true');

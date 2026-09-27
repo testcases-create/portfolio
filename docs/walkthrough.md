@@ -506,3 +506,83 @@ deleted). Results:
 
 **CI runs on main.** Every commit on main now gets its own CI result. Before,
 a quick second merge cancelled the first merge's run.
+
+## Theme from the device, a deliberate intro, the pause icon, GPU time, and the grey box
+
+**Theme follows the device.** The site used to open dark and offer a "Light
+theme" button. Now it follows the device's light or dark setting
+(`prefers-color-scheme`). The inline script in `Base.astro` sets it before the
+first paint, so there is no flash. `boot.ts` listens for the setting to change
+and switches the page and the 3D world live. With the toggle gone there is
+nothing to remember, so any old stored choice is ignored. A device with no
+preference gets dark. _Where:_ `src/layouts/Base.astro`, `src/scripts/boot.ts`,
+`themeFor` in `src/lib/preferences.ts`.
+
+**The header.** The theme button is gone. "Pause motion" is now a small
+pause/play icon button:
+
+- Its accessible name stays "Pause motion", and `aria-pressed` says whether
+  motion is paused.
+- The icon and tooltip switch to "play" while paused.
+- The tooltip shows on hover and keyboard focus. It stays open while the
+  pointer is over it, and Escape closes it (WCAG 1.4.13).
+- Pause works exactly as before (WCAG 2.2.2).
+
+_Where:_ `src/components/SiteHeader.astro`.
+
+**The intro.** It used to start every particle on a big random sphere, and
+the spring pulled them into the Data formation in well under a second. For
+that moment the screen was covered in single dots, through the hero text,
+which read as dust or static in the light theme. Now:
+
+- Particles start as a small seed: the Data formation shrunk to 8% of its size
+  around its own centre (`seed` in `src/graphics/formations.ts`).
+- Each particle's target grows from the seed to its place, following the
+  intro's 2.2 s timeline, so the formation visibly unfolds rather than
+  snapping (`grow` in `src/graphics/sim.shared.ts`, used by both simulations).
+- The particles fade in as they gather. Their opacity also follows the
+  formation's area, so the dense seed is as light as the full formation, not
+  a dark blot (`reveal` in `src/graphics/render.ts`).
+- Skipping and reduced motion work as before.
+
+**Never over the text.** The world's mask on wide screens used to start at a
+fixed 46% of the width. At 1280 px the hero text reaches 49%, so particles
+could sit over the words. The mask now starts where the hero text actually
+ends (`textEdge` in `src/graphics/world.ts`, measured again when the fonts
+load).
+
+**A test for the intro.** `tests/e2e/intro.spec.ts` holds the intro at six
+points of its timeline, lets the particles settle, and counts particle pixels.
+It checks two viewports: a 13-inch MacBook Air in light, and 1280 px in dark.
+Nothing may be drawn left of where the hero text ends, the start must be faint
+(under 0.1% of the screen), and the formation must grow to full size. Holding
+the intro makes the test independent of frame rate, which matters because CI
+renders in software, where one frame can outlast the whole intro. Run against
+the old intro code it fails: 3,206 particle pixels over the text at 1280 px,
+and 1.75% of the screen covered at the first moment.
+
+**GPU time.** On the Mac, the dark theme showed 40.83 ms of GPU time at a
+steady 60 fps, which can't be right. Stats for nerds used three.js's
+per-pass timers and added them up. With bloom a frame is about 14 passes, and
+on Apple's tile-based GPUs a pass's timer starts before the passes it depends
+on have finished. So the windows overlap and the sum counts the same time many
+times over. The light theme has one pass, so its 1.44 ms was right. Now
+`src/graphics/gpu-timer.ts` marks the start of every 30th frame's GPU work and
+the end of its last pass, and reports the span between them. The units
+(nanoseconds to milliseconds) and the age of the readings were already
+correct. This couldn't be checked here or in CI, because neither can present
+WebGPU frames; the dark-theme figure needs a fresh look on the Mac.
+
+**The grey box.** On the deploy preview, a grey box with Chrome's "sad
+document" icon sat at the bottom centre. That is where Netlify puts its
+preview toolbar, the Netlify Drawer, which it loads as a frame from
+`app.netlify.com`. Our Content Security Policy allows frames only from the
+site itself, so Chrome refuses it and shows the placeholder. The
+recommendation is to turn the Drawer off in Netlify's Deploy Previews
+settings, rather than loosen the CSP for previews, so previews keep testing
+the same headers production sends. Production never gets the Drawer: Netlify
+injects it only into previews. A new test also checks that our own pages load
+nothing from other origins and contain no frames. This environment can't
+reach the preview, so the diagnosis rests on where the box appears, what it
+looks like, and the CSP. To confirm it, right-click the box → Inspect: it
+should be an iframe from `app.netlify.com`, with a CSP error in the console.

@@ -10,6 +10,8 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:4321',
     trace: 'retain-on-failure',
+    // The theme follows the device; tests run dark unless they ask for light.
+    colorScheme: 'dark',
     launchOptions: {
       // WebGPU in headless Chromium (software adapter): lets tests exercise the high tier where supported.
       args: ['--enable-unsafe-webgpu'],

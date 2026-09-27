@@ -1,6 +1,8 @@
 // Constants and per-frame inputs shared by the GPU kernel and the CPU spec.
 // Change a number here and both simulations change together.
-import { K, TOKENS } from './formations';
+import { K, SEED_SCALE, TOKENS } from './formations';
+
+export { SEED_SCALE };
 
 /** How strongly the curl field stirs each formation. Data flows; the diagrams hold still. */
 export const FLOW_AMP = [0.05, 0.05, 0.03, 0.03, 0.04];
@@ -18,6 +20,8 @@ export const SIGNAL_GAIN = 1.2;
 /** Rotation speeds (radians per second) of the data cloud and the knot. */
 export const DATA_SPIN = 0.03;
 export const KNOT_SPIN = 0.05;
+/** How far targets have grown from the seed at intro progress a (1 at the end). */
+export const grow = (a: number): number => SEED_SCALE + (1 - SEED_SCALE) * a;
 /** Particles snap to moving paths once their formation is this fully formed. */
 export const RIGID_AT = 0.97;
 
@@ -25,8 +29,13 @@ export const RIGID_AT = 0.97;
 export interface SimInputs {
   time: number;
   dt: number;
-  /** 0 → 1 during the intro: particles gather from a scattered sphere. */
+  /**
+   * 0 → 1 during the intro: every target grows from a small seed around
+   * `centre` (SEED_SCALE of full size) to its place in the formation.
+   */
   assemble: number;
+  /** The intro's seed: the first formation's centre. */
+  centre: [number, number, number];
   /** One weight per formation, summing to 1. */
   weights: number[];
   /** LLM: the index of the token being generated (fractional part is progress). */

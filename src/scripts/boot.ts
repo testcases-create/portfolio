@@ -1,8 +1,8 @@
 // Boot code: runs once per visit and survives client-side navigation. It owns
-// the theme, pause and tier preferences, mirrors each page's world config onto
-// <html>, and loads the graphics engine after first paint. Everything here
+// the theme (following the device), pause and tier preferences, mirrors each
+// page's world config onto <html>, and loads the graphics engine after first paint. Everything here
 // counts toward the 50 KB initial budget, so the engine itself is a dynamic import.
-import { KEYS, readPaused, readTheme, write, type Theme } from '../lib/preferences';
+import { KEYS, LIGHT_QUERY, readPaused, themeFor, write, type Theme } from '../lib/preferences';
 import { posterReason, readRenderer } from '../lib/gpu-check';
 import { STORAGE_TIER_KEY, readConfig } from '../lib/world-config';
 
@@ -15,7 +15,15 @@ const store = (() => {
   }
 })();
 
-let theme: Theme = readTheme(store);
+// The theme follows the device's light or dark setting, live: the inline script
+// in Base.astro applies it before first paint, and this keeps it in step.
+const prefersLight = matchMedia(LIGHT_QUERY);
+let theme: Theme = themeFor(prefersLight.matches);
+prefersLight.addEventListener('change', () => {
+  theme = themeFor(prefersLight.matches);
+  applyState();
+  root.dispatchEvent(new CustomEvent('world:theme', { detail: theme }));
+});
 let paused = readPaused(store);
 
 function applyState(): void {
@@ -29,9 +37,6 @@ function applyState(): void {
   root.dataset.worldTier ??= 'pending';
   root.dataset.worldReady ??= 'false';
 
-  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-action="theme"]')) {
-    button.setAttribute('aria-pressed', String(theme === 'light'));
-  }
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-action="pause"]')) {
     button.setAttribute('aria-pressed', String(paused));
   }
@@ -52,12 +57,7 @@ document.addEventListener('click', (event) => {
   if (!(target instanceof Element)) return;
   const button = target.closest<HTMLElement>('[data-action]');
   const action = button?.dataset.action;
-  if (action === 'theme') {
-    theme = theme === 'dark' ? 'light' : 'dark';
-    write(store, KEYS.theme, theme);
-    applyState();
-    root.dispatchEvent(new CustomEvent('world:theme', { detail: theme }));
-  } else if (action === 'pause') {
+  if (action === 'pause') {
     paused = !paused;
     write(store, KEYS.paused, paused ? '1' : '0');
     applyState();
@@ -68,6 +68,17 @@ document.addEventListener('click', (event) => {
     panel.hidden = !panel.hidden;
     button.setAttribute('aria-expanded', String(!panel.hidden));
     renderStats();
+  }
+});
+
+// Escape closes an open tooltip until the pointer or focus leaves its button.
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  for (const icon of document.querySelectorAll<HTMLElement>('.icon:is(:hover, :focus-visible)')) {
+    icon.dataset.tipClosed = '';
+    const reopen = () => delete icon.dataset.tipClosed;
+    icon.addEventListener('pointerleave', reopen, { once: true });
+    icon.addEventListener('blur', reopen, { once: true });
   }
 });
 

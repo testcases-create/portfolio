@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FLOATS_PER_PARTICLE, Kind, STREAM_REF_LENGTH, buildFormations } from './formations';
 import { arcLift, stepCpu, target, type CpuState, type Target } from './sim.cpu';
-import { oneHot, signals, type SimInputs } from './sim.shared';
+import { SEED_SCALE, grow, oneHot, signals, type SimInputs } from './sim.shared';
 
 const colours = { neutral: [1, 1, 1], sde: [0, 0, 1], llm: [1, 1, 0], ml: [1, 0, 0.5] } as const;
 const inputs = (over: Partial<SimInputs> = {}): SimInputs => ({
@@ -15,6 +15,7 @@ const inputs = (over: Partial<SimInputs> = {}): SimInputs => ({
   pointerStrength: 0,
   alpha: 0.5,
   tintBoost: 0,
+  centre: [0, 0, 0],
   neutral: [...colours.neutral],
   sde: [...colours.sde],
   llm: [...colours.llm],
@@ -124,12 +125,19 @@ describe('stepCpu()', () => {
     for (let i = 0; i < 32; i++) expect(S.vel[i * 4 + 3]).toBeGreaterThan(0);
   });
 
-  it('does not move when assemble is 0 and there is no flow or pointer', () => {
-    const S = make(8);
-    const U = inputs({ weights: oneHot(1), assemble: 0 });
-    // Only the curl field acts; over one frame it moves particles by at most a few millimetres.
-    stepCpu(S, U);
-    for (let i = 0; i < 8; i++)
-      expect(Math.hypot(S.pos[i * 4] ?? 0, S.pos[i * 4 + 1] ?? 0)).toBeLessThan(0.01);
+  it('grows the formation out of its seed during the intro', () => {
+    // Settle at a few points of the intro and measure how far particles sit from the centre.
+    const spread = (assemble: number) => {
+      const S = make(64);
+      const U = inputs({ weights: oneHot(1), assemble, centre: [1, 2, 0] });
+      for (let t = 0; t < 600; t++) stepCpu(S, U);
+      let r = 0;
+      for (let i = 0; i < 64; i++)
+        r = Math.max(r, Math.hypot((S.pos[i * 4] ?? 0) - 1, (S.pos[i * 4 + 1] ?? 0) - 2));
+      return r;
+    };
+    const full = spread(1);
+    expect(spread(0)).toBeCloseTo(full * SEED_SCALE, 1);
+    expect(spread(0.5)).toBeCloseTo(full * grow(0.5), 1);
   });
 });

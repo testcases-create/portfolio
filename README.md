@@ -47,7 +47,7 @@ src/
   data/site.json    name, links, impact lines, skills with evidence
   graphics/         the world engine: formations, GPU and CPU simulation, tiers, camera, explorer
   lab/<demo>/       logic.ts (plain TypeScript, unit-tested), an entry module, a three.js scene module
-  scripts/          boot code (theme, pause, poster decision), deep-dive and Lab controls
+  scripts/          boot code (device theme, pause, poster decision), deep-dive and Lab controls
 scripts/            budgets, content audit and guide, screenshots, profiling, poster, OG images, résumé PDF
 tests/e2e/          Playwright + axe, run against the built site
 ```
@@ -83,9 +83,17 @@ tests/e2e/          Playwright + axe, run against the built site
   slow tier. Dynamic resolution holds the frame rate, and the pixel ratio is
   capped at 1.75. A GPU that fails or loses its device steps down rather than
   going blank.
+- **Theme.** Light or dark follows the device's setting (`prefers-color-scheme`),
+  set before first paint so there is no flash, and it changes live when the
+  device switches. There is no toggle; the world starts in the matching theme.
+- **Intro.** Once per session, Home grows the Data formation out of a small
+  seed inside the world's own area, fading in as it gathers, in 2.2 s. It never
+  crosses the text: the world's mask starts where the hero text ends. Any input
+  skips it, and reduced motion never plays it.
 - **Accessibility.** The canvas is `aria-hidden` and every formation has a
-  text caption. Pause is always in the header. Reduced motion gets the poster
-  with no scroll choreography.
+  text caption. A pause/play icon button (labelled "Pause motion", with a
+  tooltip) is always in the header and stops all motion (WCAG 2.2.2). Reduced
+  motion gets the poster with no scroll choreography.
 
 ## Budgets and measured results
 
@@ -94,9 +102,9 @@ every built page and every lazy feature, and CI fails on any overrun.
 
 | What                                                         | Measured                                                                                                 | Budget                     |
 | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | -------------------------- |
-| JavaScript before idle, most pages                           | 9.6–10.8 KB                                                                                              | 50 KB                      |
-| JavaScript before idle, Home (with the intro)                | 40.2 KB                                                                                                  | 50 KB                      |
-| Graphics engine, after first paint                           | 303.9 KB                                                                                                 | 320 KB                     |
+| JavaScript before idle, most pages                           | 9.7–10.9 KB                                                                                              | 50 KB                      |
+| JavaScript before idle, Home (with the intro)                | 40.3 KB                                                                                                  | 50 KB                      |
+| Graphics engine, after first paint                           | 304.6 KB                                                                                                 | 320 KB                     |
 | Architecture explorer, on demand                             | 3.7 KB                                                                                                   | 25 KB                      |
 | Lab: Train a network / Watch attention / Scale a system      | 7.6 / 5.4 (+ 8.8 KB data) / 6.9 KB                                                                       | 35 / 25 (+ 120) / 25 KB    |
 | Preloaded fonts                                              | 57.0 KB                                                                                                  | 60 KB                      |
@@ -110,7 +118,16 @@ every built page and every lazy feature, and CI fails on any overrun.
 Chrome, the high tier holds 61 fps: its 16.6 ms frame time is the display's
 60 Hz refresh, not the work. The GPU needs 1.44 ms a frame for all 65,536
 particles (one compute pass, one draw call), under a tenth of the 16.7 ms
-budget, according to Stats for nerds.
+budget, according to Stats for nerds in the light theme.
+
+**GPU time with bloom.** In the dark theme, with bloom (about 14 passes), the
+same Mac showed 40.83 ms of GPU time while holding 60 fps, which is
+impossible. Stats for nerds added up each pass's own timer, and on Apple's
+tile-based GPUs those windows overlap, so the sum counted the same time many
+times. It now times each frame as one span, from the start of its first pass
+to the end of its last (`src/graphics/gpu-timer.ts`). The dark-theme figure
+needs measuring again on the Mac: CI and the build machine can't present
+WebGPU frames.
 
 **Still to measure:** a mid-range phone on the low tier (target 30 fps). The
 build machine has no GPU and renders in software at 2–7 fps, which says
@@ -190,7 +207,17 @@ change: in `netlify.toml`, set `[build] command = "npm run build"`. Previews
 and branch deploys stay demo builds.
 
 Security headers: a strict Content Security Policy, and immutable caching for
-hashed assets.
+hashed assets. The CSP allows nothing from other origins, and a Playwright test
+checks that no page loads anything from another origin or contains a frame.
+
+**The grey box on deploy previews.** On a deploy preview, Netlify injects its
+preview toolbar, the Netlify Drawer, as a frame from `app.netlify.com`. Our CSP
+refuses that frame, and Chrome draws a grey "blocked content" box at the bottom
+centre instead. Turn the Drawer off in Netlify: in the project's Deploy
+Previews settings (under Build & deploy), set the Netlify Drawer to disabled.
+Loosening the CSP for previews would mean previews no longer test the headers
+production sends. Production never gets the Drawer: Netlify injects it only
+into deploy previews (and branch deploys, if enabled there).
 
 ## CI and workflows
 

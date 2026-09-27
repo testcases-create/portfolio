@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { check, palette } from '../../scripts/palette.mjs';
-import { KEYS } from '../lib/preferences';
+import { LIGHT_QUERY } from '../lib/preferences';
 
 const css = readFileSync('src/styles/tokens.css', 'utf8');
 const block = (selector: string) => {
@@ -25,7 +25,7 @@ describe('design tokens', () => {
     expect(check().failures).toEqual([]);
   });
 
-  it('the pre-paint theme script reads the same storage key as boot code', () => {
-    expect(readFileSync('src/layouts/Base.astro', 'utf8')).toContain(`localStorage.getItem('${KEYS.theme}')`);
+  it('the pre-paint theme script asks the device the same question as boot code', () => {
+    expect(readFileSync('src/layouts/Base.astro', 'utf8')).toContain(`matchMedia('${LIGHT_QUERY}')`);
   });
 });
