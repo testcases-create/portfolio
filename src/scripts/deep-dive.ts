@@ -35,9 +35,14 @@ function init() {
   const links = new Map(
     [...document.querySelectorAll<HTMLAnchorElement>('.toc-wide a')].map((a) => [a.hash.slice(1), a]),
   );
+  const first = links.keys().next().value;
   observer = new IntersectionObserver(
     (entries) => {
       for (const e of entries) {
+        // Back above the first section: nothing is current.
+        if (!e.isIntersecting && e.target.id === first && e.boundingClientRect.top > 0) {
+          for (const a of links.values()) a.removeAttribute('aria-current');
+        }
         if (!e.isIntersecting) continue;
         for (const a of links.values()) a.removeAttribute('aria-current');
         links.get(e.target.id)?.setAttribute('aria-current', 'location');

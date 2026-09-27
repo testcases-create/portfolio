@@ -119,6 +119,12 @@ button {
   border-color: var(--text);
 }
 
+/* A toggle that is on shows it, not only to assistive technology. */
+.button[aria-pressed='true'] {
+  border-color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--text);
+}
+
 .button[data-primary] {
   background: var(--text);
   color: var(--ground);

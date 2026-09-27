@@ -290,3 +290,63 @@ the engine has loaded. _Where:_ `LAZY` in `scripts/budgets.ts`.
   because three.js classes the Lab uses now sit in the shared three.js chunk.
 - There are 139 unit tests and 93 end-to-end tests, including the GPU
   training parity check.
+
+## Phase 5: QA and polish
+
+**Screenshots are a script, not a chore.** `npm run screenshots` captures
+Home, a project and the Lab at 390 px and 1440 px in both themes. It scrolls
+through each page first, so the scroll choreography runs, and saves WebP
+files to `docs/screenshots/`. Rerunning it after a change makes before/after
+comparison cheap. _Where:_ `scripts/screenshots.ts`.
+
+**What the review found and fixed.**
+
+- **Clipped placeholder captions.** In the small cover frames, the frame
+  cropped its own caption. Now only a real image is cropped; a caption can
+  make the frame taller.
+- **Toggles that looked the same pressed or not.** The theme and pause
+  buttons had `aria-pressed` for screen readers but no visible pressed state.
+  A pressed toggle now has a heavier border.
+- **A stale "you are here".** The contents list kept its last highlight after
+  you scrolled back above the first section.
+- **Crowded spacing:** the "Open the Lab" link sat tight against the list
+  above it.
+
+_Where:_ `src/components/MediaFrame.astro`, `src/styles/base.css`,
+`src/scripts/deep-dive.ts`.
+
+**Measure what you can, and say what you can't.**
+
+- **Frame times in the browser.** `npm run profile-frames` records frame
+  times and long tasks per tier, and reports the tier that actually ran, since
+  a tier the browser can't run steps down. On the build machine (no GPU) that
+  is software rendering at 2 to 7 frames per second. The numbers are real but
+  say nothing about a laptop or phone, so the README asks for the run on real
+  hardware instead of quoting them as performance.
+- **The CPU simulation, on its own.** A separate timing test measures the low
+  tier's simulation: 4.0 ms a step for 4,096 particles. That leaves room
+  inside a phone's 33 ms frame even on a CPU a few times slower.
+
+_Where:_ `scripts/profile-frames.ts`, `src/graphics/sim.cpu.perf.test.ts`.
+
+**Lighthouse's own variance.** Home's largest paint ranged from 1.66 to
+1.96 s across runs with identical requests. First paint moved with it, so the
+spread comes from Lighthouse's simulated CPU time, not the page. I tested one
+theory, that the hero line waited for the serif font, and moving it to the
+preloaded sans made no difference. So the change was reverted and the range
+is reported as it is.
+
+**A guide that can't go stale.** `CONTENT_GUIDE.md` is generated from the same
+audit that blocks the production build. It lists every placeholder by file,
+with what belongs there, an example of a strong answer, the ten items to fill
+first and a confidential-work checklist. A unit test fails when the guide no
+longer matches the content, so it is always current. _Where:_
+`scripts/content-guide.ts`.
+
+**Numbers to quote.**
+
+- Lighthouse mobile across six page types: performance 99–100, and
+  accessibility, best practices and SEO 100 everywhere.
+- CLS is at most 0.001, and blocking time at most 14 ms.
+- 142 unit tests and 93 end-to-end tests pass.
+- Every page and every lazy feature is within budget.

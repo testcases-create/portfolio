@@ -1,9 +1,9 @@
 ---
-title: Fit a WebGPU particle world into 298 KB, loaded after first paint
+title: Fit a WebGPU particle world into 304 KB, loaded after first paint
 slug: this-site
 name: This site
 outcomeHeadline: This portfolio, built as a production project with budgets, tests and CI
-summary: One persistent particle world runs through the site on WebGPU or WebGL2, from a single compute kernel checked against a CPU specification. Text never waits for it, visitors without a usable GPU never download it, and CI enforces every budget.
+summary: One particle world runs through the site on WebGPU or WebGL2, from one compute kernel checked against a CPU specification. Text never waits for it, visitors with no usable GPU never download it, the Lab and the 3D explorer load only when opened, and CI enforces every budget.
 problem: A portfolio that shows graphics skill usually costs load time and accessibility. This one had to be striking and still pass a strict engineering review.
 areas: [sde, ml, llm]
 role: Sole engineer and designer
@@ -13,19 +13,19 @@ myScope: Design, the graphics engine, the content system, tests and CI
 stack: [Astro, TypeScript, three.js (WebGPU and TSL), GSAP, Playwright, Vitest, Lighthouse CI]
 metrics:
   - label: Graphics engine
-    value: 297.6 KB
+    value: 303.9 KB
     baseline: 320 KB budget
     measuredBy: Gzipped JavaScript the engine adds after first paint, measured on the built site by scripts/budgets.ts in CI
   - label: JavaScript before idle
-    value: 8.8 KB
+    value: 10.4 KB
     baseline: 50 KB budget
-    measuredBy: Gzipped initial JavaScript on project pages (39.4 KB on Home, which adds the one-time intro), same script
+    measuredBy: Gzipped initial JavaScript on project pages (39.9 KB on Home, which adds the one-time intro), same script
   - label: GPU kernel against CPU spec
     value: < 0.2% error
     measuredBy: Playwright steps the WebGPU and WebGL2 kernels once and compares the buffers with the CPU simulation, in CI on Chrome 153
   - label: Lighthouse performance (mobile)
     value: 99–100
-    measuredBy: Median of three Lighthouse CI runs per page on the built site; CI has no GPU, so this measures the poster path until Phase 5 measures real devices
+    measuredBy: Three Lighthouse CI runs per page (Home, projects, a deep dive, a presentation, the Lab and the résumé) on the built site. CI has no GPU, so this measures the poster path; frame rates on real devices are still to be measured
 links:
   repo: https://github.com/example/portfolio [EDIT]
 confidential: false
@@ -34,7 +34,7 @@ order: 7
 cover:
   alt: The particle world in its AI/ML formation
   ratio: 16/9
-  placeholder: A still of the world in its AI/ML formation, captured from the high tier in Phase 5 [EDIT]
+  placeholder: A still of the world in its AI/ML formation, captured from the high tier on a machine with a GPU (POSTER_TIER=high npm run capture-poster) [EDIT]
 architecture: this-site
 decisions:
   - question: How do GPU and CPU simulations stay in step?
@@ -87,18 +87,23 @@ The brief set hard limits: 50 KB of JavaScript before idle, strict Lighthouse sc
 
 ## Architecture
 
-Pages are static Astro. One `#world` element persists across navigation, and pages describe the formation they want with data attributes. After first paint, boot code decides between the poster and the engine. The engine builds all five formations once, simulates them in one compute kernel, and renders them as one instanced sprite draw. A camera rig and GSAP scroll progress blend between them.
+Pages are static Astro. One `#world` element persists across navigation, and pages describe the formation they want with data attributes. After first paint, boot code decides between the poster and the engine. The engine builds all five formations once, simulates them in one compute kernel, and renders them as one instanced sprite draw. A camera rig and GSAP scroll progress blend between them. The architecture explorer and the three Lab demos load only when opened; the explorer rewrites one formation's data so the same particles become the project's architecture.
 
 ## Evaluation
 
-CI runs lint, type checking, 82 unit tests, the end-to-end suite with axe accessibility checks, the size budgets and Lighthouse CI on every push.
+CI runs lint, type checking, 140 unit tests, 93 end-to-end tests with axe accessibility checks in both themes, the size budgets and Lighthouse CI on every push.
 
-| Check                                           | Result                         |
-| ----------------------------------------------- | ------------------------------ |
-| Graphics engine after first paint               | 297.6 KB of 320 KB             |
-| JavaScript before idle                          | 8.8 KB (Home 39.4 KB) of 50 KB |
-| GPU kernel against CPU spec (WebGL2 and WebGPU) | under 0.2% error               |
-| Lighthouse mobile performance                   | 99–100, 0 ms blocking time     |
+| Check                                                    | Result                               |
+| -------------------------------------------------------- | ------------------------------------ |
+| Graphics engine after first paint                        | 303.9 KB of 320 KB                   |
+| JavaScript before idle                                   | 9.3–10.4 KB (Home 39.9 KB) of 50 KB  |
+| Architecture explorer, loaded on demand                  | 3.7 KB of 25 KB                      |
+| Lab demos, loaded on demand                              | 5.4–7.6 KB each, of 25–35 KB         |
+| GPU particle kernel against CPU spec (WebGL2 and WebGPU) | under 0.2% error                     |
+| GPU training kernels against CPU spec (40 steps)         | largest difference 0.00000012        |
+| Low tier CPU simulation, 4,096 particles                 | 4.0 ms a step on the build machine   |
+| Lighthouse mobile, six page types                        | performance 99–100, 0–23 ms blocking |
+| Home largest paint (hero text), six runs                 | 1.66–1.96 s, median 1.81 s, of 2.0 s |
 
 ## Deployment and operations
 
@@ -106,7 +111,7 @@ Netlify builds production strictly: the build fails while any placeholder remain
 
 ## Results
 
-The site meets every budget in CI. Frame rates on real phones and laptops are measured in Phase 5, and these numbers will be updated then.
+The site meets every budget in CI, and the hero text is always the largest paint. The build machine has no GPU, so it renders in software at 2 to 7 frames per second; those numbers say nothing about a real laptop or phone, and `npm run profile-frames` on real hardware is the next measurement to take. On that machine's CPU, the low tier's simulation step takes 4.0 ms for 4,096 particles, which leaves room inside a 33 ms frame on a phone a few times slower.
 
 ## What I'd do next
 
