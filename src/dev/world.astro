@@ -1,0 +1,56 @@
+---
+// Development and preview builds only (injected in astro.config.ts): every
+// formation in one scroll, for reviewing the world and for Playwright.
+import Base from '../layouts/Base.astro';
+
+const sections = [
+  {
+    formation: 'data',
+    title: 'Data',
+    text: 'Particles stream along a flow field. Brighter strands move faster.',
+  },
+  {
+    formation: 'ml',
+    title: 'AI/ML',
+    text: 'A forward pass through a five-layer network, seen at an angle so its depth shows.',
+  },
+  {
+    formation: 'llm',
+    title: 'LLM',
+    text: 'A sentence being generated, token by token, with attention arcs.',
+  },
+  {
+    formation: 'sde',
+    title: 'SDE',
+    text: 'A service graph laid out in depth. Packets bunch in front of the queue.',
+  },
+  {
+    formation: 'converge',
+    title: 'Converge',
+    text: 'One knot, three lobes: pulses, arcs and packets on a single path.',
+  },
+];
+---
+
+<Base
+  title="World test page"
+  description="Every formation of the persistent world, for review."
+  formation="data"
+>
+  <meta name="robots" content="noindex" slot="head" />
+  {sections.map((s) => (
+    <section class="dev-section" data-world-formation={s.formation}>
+      <div class="world-window" data-world-window aria-hidden="true" />
+      <h2>{s.title}</h2>
+      <p class="prose">{s.text}</p>
+    </section>
+  ))}
+</Base>
+
+<style>
+  .dev-section {
+    min-height: 110vh;
+    max-width: 30rem;
+    padding-top: 20vh;
+  }
+</style>

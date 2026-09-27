@@ -8,9 +8,11 @@ const block = (selector: string) => {
   const start = css.indexOf(`${selector} {`);
   return css.slice(start, css.indexOf('}', start));
 };
+// CSS names are kebab-case (--sde-ink); palette keys are camelCase (sdeInk).
+const camel = (name = '') => name.replace(/-(\w)/g, (_, c: string) => c.toUpperCase());
 const tokens = (text: string) =>
   Object.fromEntries(
-    [...text.matchAll(/--(\w+):\s*(#[0-9a-f]{6})/gi)].map(([, k, v]) => [k, v?.toUpperCase()]),
+    [...text.matchAll(/--([\w-]+):\s*(#[0-9a-f]{6})/gi)].map(([, k, v]) => [camel(k), v?.toUpperCase()]),
   );
 
 describe('design tokens', () => {

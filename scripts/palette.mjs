@@ -1,6 +1,11 @@
 // Checks the design palette: WCAG contrast of every token against its surfaces,
 // and whether the three role hues stay distinct under colour-vision deficiency
 // (Machado et al. 2009, severity 1.0), measured as OKLab distance.
+//
+// Each role has two colours. The graphic colour (sde, llm, ml) is used by the
+// world, dots and diagrams, where WCAG 1.4.11 asks for 3:1, so it can be vivid.
+// The ink colour (sdeInk, ...) is the text-safe variant (4.5:1) for the few
+// places a role colour is text. In the dark theme the two are the same.
 // Run: node scripts/palette.mjs   (exits 1 if any check fails)
 
 export const palette = {
@@ -10,9 +15,12 @@ export const palette = {
     text: '#ECE8E1',
     muted: '#A7ABB3',
     line: '#6B717C',
-    sde: '#4FAAF5',
-    llm: '#E0B444',
-    ml: '#EC7BA6',
+    sde: '#61B0FE',
+    llm: '#F9BD01',
+    ml: '#FD6AAC',
+    sdeInk: '#61B0FE',
+    llmInk: '#F9BD01',
+    mlInk: '#FD6AAC',
   },
   light: {
     ground: '#EEF0F2',
@@ -20,14 +28,27 @@ export const palette = {
     text: '#1A1D23',
     muted: '#4E545E',
     line: '#7C828C',
-    sde: '#2F63BE',
-    llm: '#765A00',
-    ml: '#A8406F',
+    sde: '#3587FB',
+    llm: '#B78006',
+    ml: '#E65598',
+    sdeInk: '#1069DA',
+    llmInk: '#926502',
+    mlInk: '#C3337A',
   },
 };
 
 // Minimum contrast each token needs against ground and raised surfaces.
-const need = { text: 4.5, muted: 4.5, line: 3, sde: 4.5, llm: 4.5, ml: 4.5 };
+const need = {
+  text: 4.5,
+  muted: 4.5,
+  line: 3,
+  sde: 3,
+  llm: 3,
+  ml: 3,
+  sdeInk: 4.5,
+  llmInk: 4.5,
+  mlInk: 4.5,
+};
 const MIN_ROLE_DISTANCE = 0.1; // OKLab ΔE between any two role hues
 
 const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
@@ -72,20 +93,21 @@ export function check(p = palette) {
     for (const [token, min] of Object.entries(need)) {
       for (const surface of ['ground', 'raised']) {
         const ratio = contrast(t[token], t[surface]);
-        rows.push(`${theme.padEnd(5)} ${token.padEnd(6)} on ${surface.padEnd(6)} ${ratio.toFixed(2)}:1`);
+        rows.push(`${theme.padEnd(5)} ${token.padEnd(7)} on ${surface.padEnd(6)} ${ratio.toFixed(2)}:1`);
         if (ratio < min) failures.push(`${theme} ${token} on ${surface}: ${ratio.toFixed(2)} < ${min}`);
       }
     }
-    for (const [name, m] of Object.entries(cvd)) {
-      const pairs = [
-        ['sde', 'llm'],
-        ['sde', 'ml'],
-        ['llm', 'ml'],
-      ].map(([a, b]) => distance(t[a], t[b], m));
-      rows.push(
-        `${theme.padEnd(5)} roles ${name.padEnd(6)} ΔE sde/llm ${pairs[0].toFixed(3)}  sde/ml ${pairs[1].toFixed(3)}  llm/ml ${pairs[2].toFixed(3)}`,
-      );
-      if (Math.min(...pairs) < MIN_ROLE_DISTANCE) failures.push(`${theme} role hues too close under ${name}`);
+    for (const suffix of ['', 'Ink']) {
+      const [sde, llm, ml] = ['sde', 'llm', 'ml'].map((role) => t[role + suffix]);
+      const set = suffix ? 'ink' : 'graphic';
+      for (const [name, m] of Object.entries(cvd)) {
+        const pairs = [distance(sde, llm, m), distance(sde, ml, m), distance(llm, ml, m)];
+        rows.push(
+          `${theme.padEnd(5)} ${set.padEnd(7)} ${name.padEnd(6)} ΔE sde/llm ${pairs[0].toFixed(3)}  sde/ml ${pairs[1].toFixed(3)}  llm/ml ${pairs[2].toFixed(3)}`,
+        );
+        if (Math.min(...pairs) < MIN_ROLE_DISTANCE)
+          failures.push(`${theme} ${set} role hues too close under ${name}`);
+      }
     }
   }
   return { rows, failures };

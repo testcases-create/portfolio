@@ -1,4 +1,4 @@
-/* Design tokens (PLAN.md section 5). Colours are checked by scripts/palette.mjs;
+/* Design tokens (PLAN.md sections 5 and 12). Colours are checked by scripts/palette.mjs;
    src/styles/tokens.test.ts keeps this file and that script in sync. */
 :root,
 :root[data-theme='dark'] {
@@ -8,9 +8,13 @@
   --text: #ece8e1; /* Chalk */
   --muted: #a7abb3; /* Pewter */
   --line: #6b717c; /* Rule */
-  --sde: #4faaf5; /* Signal blue */
-  --llm: #e0b444; /* Lamp gold */
-  --ml: #ec7ba6; /* Stain rose */
+  /* Role colours: graphic (world, dots, diagrams; 3:1) and ink (text; 4.5:1). */
+  --sde: #61b0fe; /* Signal blue */
+  --llm: #f9bd01; /* Lamp gold */
+  --ml: #fd6aac; /* Stain rose */
+  --sde-ink: #61b0fe;
+  --llm-ink: #f9bd01;
+  --ml-ink: #fd6aac;
 }
 
 :root[data-theme='light'] {
@@ -20,9 +24,12 @@
   --text: #1a1d23; /* Ink */
   --muted: #4e545e; /* Graphite */
   --line: #7c828c; /* Rule */
-  --sde: #2f63be;
-  --llm: #765a00;
-  --ml: #a8406f;
+  --sde: #3587fb;
+  --llm: #b78006;
+  --ml: #e65598;
+  --sde-ink: #1069da;
+  --llm-ink: #926502;
+  --ml-ink: #c3337a;
 }
 
 :root {
@@ -56,6 +63,8 @@
   --gutter: clamp(1rem, 0.5rem + 2.2vw, 2.5rem);
   --max-width: 90rem;
   --radius-control: 2px;
+  /* Project pages: header plus the world's band. */
+  --band-total: clamp(15rem, 38vh, 24rem);
   --focus: 2px solid var(--text);
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
 }

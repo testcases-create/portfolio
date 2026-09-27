@@ -40,13 +40,25 @@ const fullTitle = title === strip(site.name) ? title : `${title} · ${strip(site
     <Font cssVariable="--font-archivo" preload />
     <Font cssVariable="--font-source-serif" />
     <script is:inline>
-      // Set the remembered theme before first paint so there is no flash.
-      try {
-        if (localStorage.getItem('pref:theme') === 'light') document.documentElement.dataset.theme = 'light';
-      } catch {
-        /* storage blocked: keep the default dark theme */
-      }
+      // Before first paint: restore the remembered theme so there is no flash, and
+      // decide whether the one-time hero intro plays (never with reduced motion).
+      (() => {
+        const root = document.documentElement;
+        try {
+          if (localStorage.getItem('pref:theme') === 'light') root.dataset.theme = 'light';
+        } catch {
+          /* storage blocked: keep the default dark theme */
+        }
+        let seen = false;
+        try {
+          seen = sessionStorage.getItem('intro:seen') === '1';
+        } catch {
+          /* storage blocked: play the intro */
+        }
+        if (!seen && !matchMedia('(prefers-reduced-motion: reduce)').matches) root.classList.add('intro');
+      })();
     </script>
+    <slot name="head" />
     <ClientRouter />
   </head>
   <body data-world-formation={formation} data-world-mode={mode}>
@@ -54,10 +66,42 @@ const fullTitle = title === strip(site.name) ? title : `${title} · ${strip(site
       Skip to content
     </a>
     <WorldSlot />
-    <SiteHeader />
+    {mode === 'band' ? (
+      // Project pages: the header and the world's band share one block of fixed height,
+      // so the band is placed by CSS alone and never shifts the layout.
+      <div class="band-top" data-world-band>
+        <SiteHeader />
+      </div>
+    ) : (
+      <SiteHeader />
+    )}
     <main id="main" class="wrap">
       <slot />
     </main>
+    <footer class="site-footer wrap">
+      <button
+        type="button"
+        class="button"
+        data-action="stats"
+        aria-expanded="false"
+        aria-controls="world-stats"
+      >
+        Stats for nerds
+      </button>
+      <section id="world-stats" class="world-stats" aria-label="Graphics stats" hidden>
+        <label>
+          Graphics quality
+          <select id="world-tier">
+            <option value="auto">Automatic</option>
+            <option value="high">High (WebGPU)</option>
+            <option value="medium">Medium (WebGL2)</option>
+            <option value="low">Low (CPU)</option>
+            <option value="poster">Still image</option>
+          </select>
+        </label>
+        <dl></dl>
+      </section>
+    </footer>
     <script>
       import '../scripts/boot';
     </script>
@@ -69,5 +113,58 @@ const fullTitle = title === strip(site.name) ? title : `${title} · ${strip(site
     position: relative;
     z-index: 1;
     padding-block: var(--space-7) var(--space-9);
+  }
+
+  .band-top {
+    height: var(--band-total);
+  }
+
+  .site-footer {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    align-items: flex-start;
+    padding-block: var(--space-6) var(--space-8);
+  }
+
+  .world-stats {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--raised);
+    font-size: var(--step-small);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .world-stats label {
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  .world-stats select {
+    min-height: 2.5rem;
+    font: inherit;
+    color: var(--text);
+    background: var(--ground);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+  }
+
+  .world-stats :global(dl) {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: var(--space-1) var(--space-5);
+    margin: 0;
+  }
+
+  .world-stats :global(dt) {
+    color: var(--muted);
+  }
+
+  .world-stats :global(dd) {
+    margin: 0;
+    text-align: right;
   }
 </style>

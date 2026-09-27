@@ -3,6 +3,18 @@ import { expect, test } from '@playwright/test';
 
 const pages = ['/', '/projects/', '/projects/inference-gateway/', '/404'];
 
+// These tests cover the page, not the graphics (world.spec.ts does): show the
+// poster so they stay fast and deterministic.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('pref:tier', 'poster');
+    } catch {
+      /* storage blocked: the world still starts, which the tests tolerate */
+    }
+  });
+});
+
 for (const path of pages) {
   test(`${path} has no WCAG A/AA violations in either theme`, async ({ page }) => {
     await page.goto(path);

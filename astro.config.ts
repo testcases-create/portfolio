@@ -25,6 +25,18 @@ const contentGate = (): AstroIntegration => ({
   },
 });
 
+// The world test page exists in dev and preview builds only.
+const devPages = (): AstroIntegration => ({
+  name: 'dev-pages',
+  hooks: {
+    'astro:config:setup': ({ command, injectRoute }) => {
+      if (command === 'dev' || process.env.ALLOW_PLACEHOLDERS === '1') {
+        injectRoute({ pattern: '/dev/world', entrypoint: './src/dev/world.astro' });
+      }
+    },
+  },
+});
+
 const archivo = './src/assets/fonts/archivo-latin-normal.woff2';
 const serif = './src/assets/fonts/source-serif-4-latin-normal.woff2';
 const serifItalic = './src/assets/fonts/source-serif-4-latin-italic.woff2';
@@ -33,7 +45,12 @@ export default defineConfig({
   site: strip(site.siteUrl),
   output: 'static',
   trailingSlash: 'ignore',
-  integrations: [sitemap(), contentGate()],
+  integrations: [sitemap({ filter: (page) => !page.includes('/dev/') }), contentGate(), devPages()],
+  vite: {
+    // three.js is one ~1 MB (minified) module. scripts/budgets.ts enforces the real,
+    // gzipped budgets per page, so Vite's generic warning adds nothing.
+    build: { chunkSizeWarningLimit: 1100 },
+  },
   fonts: [
     {
       provider: fontProviders.local(),

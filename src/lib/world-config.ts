@@ -22,3 +22,22 @@ export function readConfig(dataset: Record<string, string | undefined>): WorldCo
     mode: oneOf(MODES, dataset.worldMode, DEFAULT_CONFIG.mode),
   };
 }
+
+/** What each formation shows, in plain words. Shown as DOM text beside the world. */
+export const CAPTIONS: Record<Exclude<Formation, 'graph'>, { area?: 'sde' | 'llm' | 'ml'; text: string }> = {
+  data: { text: 'Data: particles streaming along the lines of a flow field. Brighter strands move faster.' },
+  ml: {
+    area: 'ml',
+    text: 'AI/ML: a forward pass through a five-layer network. Denser edges carry larger weights.',
+  },
+  llm: {
+    area: 'llm',
+    text: 'LLM: a sentence being generated. Arcs show which earlier tokens each new token attends to.',
+  },
+  sde: { area: 'sde', text: 'SDE: requests fan out through services, a cache and a queue to the database.' },
+  converge: {
+    text: 'One knot with three lobes: network pulses, attention arcs and request packets on a single path.',
+  },
+};
+
+export const STORAGE_TIER_KEY = 'pref:tier';
