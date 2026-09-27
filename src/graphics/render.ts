@@ -76,26 +76,15 @@ export function createParticles(
   material.scaleNode = R.size.mul(V.w).mul(P.w.mul(0.45).add(1));
   material.colorNode = C.rgb;
   material.opacityNode = C.a.mul(falloff).mul(mask).mul(depth);
-  // Only signals write to the glow target, so bloom never washes the whole frame.
-  // The engine attaches this only on frames the bloom pass draws (setGlow):
-  // rendered on its own, three.js would take a material's MRT as its only
-  // output, and every non-signal particle would draw nothing.
-  const glow = withGlow ? mrt({ glow: vec4(C.rgb.mul(P.w), C.a.mul(falloff).mul(mask).mul(depth)) }) : null;
+  if (withGlow) {
+    // Only signals write to the glow target, so bloom never washes the whole frame.
+    material.mrtNode = mrt({ glow: vec4(C.rgb.mul(P.w), C.a.mul(falloff).mul(mask).mul(depth)) });
+  }
 
   const sprite = new Sprite(material);
   sprite.count = n;
   sprite.frustumCulled = false;
-  return {
-    sprite,
-    material,
-    /** Attaches or detaches the glow output; true only while the bloom pass renders. */
-    setGlow(on: boolean) {
-      const next = on ? glow : null;
-      if (material.mrtNode === next) return;
-      material.mrtNode = next;
-      material.needsUpdate = true;
-    },
-  };
+  return { sprite, material };
 }
 
 export function applySettings(material: SpriteNodeMaterial, R: RenderUniforms, s: RenderSettings): void {
@@ -107,8 +96,7 @@ export function applySettings(material: SpriteNodeMaterial, R: RenderUniforms, s
 
 /**
  * Selective bloom: strength 0.55, radius 0.05, fed only by the glow target.
- * Dark theme only: bloom adds light, which on a light background only washes
- * signals toward white, so the engine skips the pipeline in the light theme.
+ * The engine skips the pipeline entirely in the light theme.
  */
 export function createBloomPipeline(renderer: WebGPURenderer, scene: Scene, camera: PerspectiveCamera) {
   const scenePass = pass(scene, camera);

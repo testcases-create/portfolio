@@ -130,21 +130,10 @@ export async function createWorld(
 
   const scene = new Scene();
   const camera = new PerspectiveCamera(FOV, 1, 0.1, 200);
-  const { sprite, material, setGlow } = createParticles(n, gpu, R, tier.bloom);
+  const { sprite, material } = createParticles(n, gpu, R, tier.bloom);
   scene.add(sprite);
   let pipeline: RenderPipeline | null = tier.bloom ? createBloomPipeline(renderer, scene, camera) : null;
-  let bloomFailed = false;
-  /** Whether this frame goes through the bloom pass: dark theme, and full or explore mode. */
-  const bloomActive = () =>
-    !!pipeline && state.theme.settings.bloom && (state.mode === 'full' || !!state.explore);
-  /** What Stats for nerds says about bloom, from what the frame actually does. */
-  const bloomNote = () => {
-    if (!tier.bloom) return 'off for this tier';
-    if (bloomFailed) return 'failed, disabled';
-    if (!state.theme.settings.bloom) return 'off in the light theme';
-    if (state.mode !== 'full' && !state.explore) return 'off in the header band';
-    return 'on';
-  };
+  let bloomNote = tier.bloom ? 'on (dark theme)' : 'off for this tier';
   const labels = createLabels(host);
 
   const probe = createProbe();
@@ -353,10 +342,7 @@ export async function createWorld(
       writeUniforms(U, inputs);
       renderer.compute(gpu.compute);
     }
-    // The glow output exists only while the bloom pass draws; without the pass,
-    // the particles must write their colour to the ordinary output.
-    const bloomNow = bloomActive();
-    setGlow(bloomNow);
+    const bloomNow = pipeline && state.theme.settings.bloom && (state.mode === 'full' || !!state.explore);
     if (bloomNow) pipeline?.render();
     else renderer.render(scene, camera);
 
@@ -400,8 +386,7 @@ export async function createWorld(
       if (pipeline) {
         console.warn('World: bloom failed; continuing without it.', error);
         pipeline = null;
-        bloomFailed = true;
-        setGlow(false);
+        bloomNote = 'failed, disabled';
         return;
       }
       failed = true;
@@ -459,7 +444,7 @@ export async function createWorld(
         computeCalls: info.compute.frameCalls,
         renderScale: pixelRatio(devicePixelRatio, resolution.scale),
         probe: probeNote,
-        bloom: bloomNote(),
+        bloom: bloomNote,
       };
     },
     /** Test hook: one simulation step from the current state, returned with the state it started from. */
