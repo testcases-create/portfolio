@@ -472,8 +472,37 @@ tier in the light theme. It counts visible particle pixels in the world's
 area at load, after switching to dark, and after switching back to light, and
 checks that light reads at least as well as dark. It uses the Data formation,
 which has no signals, so the glow bug would leave it blank. A tier the
-browser can't run is skipped, with the tier that actually ran recorded.
-Chromium 141 here can't render WebGPU, so the high tier runs only in CI.
+browser can't run is skipped, and the tier that actually ran is recorded.
+When a check fails, its message includes all three measurements, the Stats
+for nerds readout in both themes, and the page's console errors.
+
+**What CI covers, and what it can't.** CI checks the medium and low tiers.
+It can't check the high tier: CI's Chromium starts WebGPU and runs its
+compute (the kernel test passes), but it loses the GPU device when it
+presents frames. So the high tier draws nothing in either theme there, fixed
+or not. The test skips the high tier with that reason, but only when both
+are true: the device was lost, and nothing was drawn in any of the three
+measurements. Any other blank frame still fails. To check the high tier, run
+the test on a machine with a GPU, such as the Mac where the bug was found:
+
+```sh
+npm run build:preview
+npx playwright test tests/e2e/visibility.spec.ts --project=desktop --headed
+```
+
+**Proof run.** To see whether the test catches the bug, it ran in CI once
+without the fix, on a throwaway branch (`claude/visibility-test-proof`, now
+deleted). Results:
+
+- Before the fix, medium and low failed: light read worse than dark (of the
+  world's area, medium showed 0.85% in light against 1.08% in dark, and low
+  2.46% against 2.99%).
+- With the fix, both pass.
+- High failed at 0.00% in the light theme both before and after the fix.
+  The diagnostics then showed 0.00% in the dark theme too, with the GPU
+  device lost, so that failure was CI's WebGPU and not this bug. The high
+  tier's fix is checked by the code path (the glow output is only attached
+  while the bloom pass draws) and on real hardware, not in CI.
 
 **CI runs on main.** Every commit on main now gets its own CI result. Before,
 a quick second merge cancelled the first merge's run.

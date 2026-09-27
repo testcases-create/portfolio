@@ -5,6 +5,10 @@
 // These tests look at the pixels: each tier renders the Data formation (no
 // signals, so nothing reaches it through the glow path) and the test counts
 // pixels that clearly differ from the background.
+//
+// Coverage: CI checks the medium and low tiers. CI's Chromium starts WebGPU
+// but can't present its frames, so the high tier skips there; run this file
+// on a machine with a GPU to check it (see docs/walkthrough.md).
 import { expect, test, type Page } from '@playwright/test';
 import sharp from 'sharp';
 
@@ -112,6 +116,17 @@ for (const tier of ['high', 'medium', 'low'] as const) {
     await toggleTheme(page);
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
     const back = await settleAndMeasure(page, 'light');
+
+    // CI's software WebGPU runs compute but loses its device when presenting
+    // frames, so nothing is drawn in either theme. That is the environment, not
+    // this page: skip, and say so. Any other blank frame still fails.
+    const deviceLost = logs.some((l) =>
+      /Instance dropped|Instance reference no longer exists|device lost/i.test(l),
+    );
+    test.skip(
+      deviceLost && atLoad === 0 && dark === 0 && back === 0,
+      `the ${tier} tier's GPU device was lost here and drew nothing in either theme`,
+    );
 
     // Everything measured goes into each message, so a failure in CI explains itself.
     const pct = (v: number) => `${(v * 100).toFixed(2)}%`;
