@@ -3,6 +3,9 @@ name: CI
 on:
   push:
   pull_request:
+  # Started by the "Precompute attention" workflow on the branch it opens a
+  # pull request from (its own push can't trigger this workflow).
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}

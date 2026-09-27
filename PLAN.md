@@ -792,8 +792,9 @@ for the serif font. That made no difference, so I reverted it.
   request.
 - **It needs one repository setting:** Settings → Actions → General → Workflow
   permissions → "Allow GitHub Actions to create and approve pull requests".
-- Pull requests created with `GITHUB_TOKEN` don't trigger CI. Close and reopen
-  the pull request to run it.
+- Pull requests created with `GITHUB_TOKEN` don't trigger CI. The workflow now
+  starts CI itself (`gh workflow run ci.yml --ref <branch>`, with `ci.yml` also
+  triggered by `workflow_dispatch`).
 - The "sample data" notice depends only on `source`, so it disappears with the
   real data. I checked this by marking the file as model data and running the
   Lab test.
@@ -828,3 +829,21 @@ for the serif font. That made no difference, so I reverted it.
   - Narrowing Archivo's width axis saves only 2.6 KB.
 - **The assertion:** Home's LCP is now judged on the median of three runs
   (Lighthouse CI's default is the best run), with a warning at 1.85 s.
+
+### Follow-up: the first attention pull request (#7)
+
+**What failed.** CI on the workflow's first pull request failed on the content
+guide's freshness test. The real data drops the sample's `[EDIT]` note, but the
+workflow committed only `attention.json`, so `CONTENT_GUIDE.md` still listed
+202 placeholders instead of 201.
+
+**Fixed on #7:** the guide is regenerated on its branch. The full suite passes
+against the real data: lint, types, 142 unit tests, 95 end-to-end tests,
+budgets (the data is 28.8 KB of 120), Lighthouse and the demo check.
+
+**Fixed in the workflow**, so future runs pass first time:
+
+- it regenerates and commits the guide with the data;
+- it runs the full unit tests and lint before opening the pull request;
+- it starts CI on the branch itself, so the checks appear without closing and
+  reopening the pull request.

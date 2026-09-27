@@ -188,18 +188,25 @@ hashed assets.
 ## CI and workflows
 
 - **`.github/workflows/ci.yml`** runs every check above on every push and pull
-  request, then builds the demo site and checks it.
+  request, then builds the demo site and checks it. It can also be started by
+  hand (`workflow_dispatch`); the attention workflow uses that.
 - **`.github/workflows/attention.yml`** ("Precompute attention") is started
-  by hand from the Actions tab. It runs `npm run precompute-attention` on
-  GitHub's runners, which can reach Hugging Face. It then checks the result
-  against the attention tests and the 120 KB budget, and opens a pull request
-  with the new `public/lab/attention.json`.
+  by hand from the Actions tab. It:
+  1. runs `npm run precompute-attention` on GitHub's runners, which can reach
+     Hugging Face;
+  2. checks the result against the 120 KB budget;
+  3. regenerates `CONTENT_GUIDE.md`, which lists the sample's placeholder
+     that the real data removes;
+  4. runs the unit tests and lint;
+  5. opens a pull request with both files;
+  6. starts CI on its branch.
+
+  The last step is needed because pushes made with a workflow's own token
+  don't trigger other workflows, but a `workflow_dispatch` does. The pull
+  request's checks then appear as usual, with nothing to close and reopen.
   - **Before the first run**, allow it to open pull requests: Settings →
     Actions → General → Workflow permissions → tick "Allow GitHub Actions to
     create and approve pull requests".
-  - **Pull requests opened with the workflow's own token don't start CI.**
-    Close and reopen that pull request (or push a commit to its branch) to run
-    CI before merging.
   - **Once the real data is merged**, the Lab's "sample data" notice
     disappears (it shows only while the file says `"source": "sample"`), and
     the file stops blocking the production build.
