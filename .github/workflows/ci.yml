@@ -7,9 +7,13 @@ on:
   # pull request from (its own push can't trigger this workflow).
   workflow_dispatch:
 
+# On other branches a newer push replaces the branch's older run. On main every
+# commit gets its own result: each commit is its own group, so nothing cancels
+# or replaces it (one group per branch would still drop a queued run when a
+# third commit arrived).
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   verify:

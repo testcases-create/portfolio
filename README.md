@@ -67,12 +67,12 @@ tests/e2e/          Playwright + axe, run against the built site
 
 ## The graphics engine
 
-| Tier   | Particles | Simulation                                    | Rendering                 | Chosen when                                     |
-| ------ | --------- | --------------------------------------------- | ------------------------- | ----------------------------------------------- |
-| High   | 65,536    | WebGPU compute (TSL)                          | WebGPU, bloom on signals  | a real WebGPU adapter exists                    |
-| Medium | 16,384    | the same kernel via WebGL2 transform feedback | WebGL2                    | WebGL2 but no WebGPU, or High is too slow       |
-| Low    | 4,096     | CPU (the specification the kernel matches)    | WebGL2                    | Medium is too slow                              |
-| Poster | 0         | —                                             | a still of the real scene | reduced motion, Save-Data, no WebGL2, or no GPU |
+| Tier   | Particles | Simulation                                    | Rendering                             | Chosen when                                     |
+| ------ | --------- | --------------------------------------------- | ------------------------------------- | ----------------------------------------------- |
+| High   | 65,536    | WebGPU compute (TSL)                          | WebGPU, bloom on signals (dark theme) | a real WebGPU adapter exists                    |
+| Medium | 16,384    | the same kernel via WebGL2 transform feedback | WebGL2                                | WebGL2 but no WebGPU, or High is too slow       |
+| Low    | 4,096     | CPU (the specification the kernel matches)    | WebGL2                                | Medium is too slow                              |
+| Poster | 0         | —                                             | a still of the real scene             | reduced motion, Save-Data, no WebGL2, or no GPU |
 
 - **One kernel, two GPU backends.** The simulation is written once in TSL, and
   three.js compiles it to a WebGPU compute shader or a WebGL2 transform-feedback
@@ -92,23 +92,30 @@ tests/e2e/          Playwright + axe, run against the built site
 All sizes are gzipped, where KB means 1,000 bytes. `npm run budgets` measures
 every built page and every lazy feature, and CI fails on any overrun.
 
-| What                                                    | Measured                                                      | Budget                     |
-| ------------------------------------------------------- | ------------------------------------------------------------- | -------------------------- |
-| JavaScript before idle, most pages                      | 9.6–10.8 KB                                                   | 50 KB                      |
-| JavaScript before idle, Home (with the intro)           | 40.2 KB                                                       | 50 KB                      |
-| Graphics engine, after first paint                      | 303.9 KB                                                      | 320 KB                     |
-| Architecture explorer, on demand                        | 3.7 KB                                                        | 25 KB                      |
-| Lab: Train a network / Watch attention / Scale a system | 7.6 / 5.4 (+ 8.8 KB data) / 6.9 KB                            | 35 / 25 (+ 120) / 25 KB    |
-| Preloaded fonts                                         | 57.0 KB                                                       | 60 KB                      |
-| Lighthouse mobile, Home                                 | 99–100; LCP median 1.66 s (worst 1.81 s), CLS 0.001, TBT 0 ms | 90; 2.0 s, 0.05, 200 ms    |
-| Lighthouse mobile, other pages                          | 99–100 performance; 100 accessibility, best practices, SEO    | 95                         |
-| GPU training kernels against the CPU spec               | largest difference 1.2 × 10⁻⁷ after 40 steps                  | test < 10⁻⁴                |
-| Low tier CPU simulation step, 4,096 particles           | 4.0 ms on the build machine                                   | test < 16.7 ms (one frame) |
+| What                                                         | Measured                                                                                                 | Budget                     |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | -------------------------- |
+| JavaScript before idle, most pages                           | 9.6–10.8 KB                                                                                              | 50 KB                      |
+| JavaScript before idle, Home (with the intro)                | 40.2 KB                                                                                                  | 50 KB                      |
+| Graphics engine, after first paint                           | 303.9 KB                                                                                                 | 320 KB                     |
+| Architecture explorer, on demand                             | 3.7 KB                                                                                                   | 25 KB                      |
+| Lab: Train a network / Watch attention / Scale a system      | 7.6 / 5.4 (+ 8.8 KB data) / 6.9 KB                                                                       | 35 / 25 (+ 120) / 25 KB    |
+| Preloaded fonts                                              | 57.0 KB                                                                                                  | 60 KB                      |
+| Lighthouse mobile, Home                                      | 99–100; LCP median 1.66 s (worst 1.81 s), CLS 0.001, TBT 0 ms                                            | 90; 2.0 s, 0.05, 200 ms    |
+| Lighthouse mobile, other pages                               | 99–100 performance; 100 accessibility, best practices, SEO                                               | 95                         |
+| GPU training kernels against the CPU spec                    | largest difference 1.2 × 10⁻⁷ after 40 steps                                                             | test < 10⁻⁴                |
+| High tier on a MacBook Air 13-inch (Apple M5, 16 GB), Chrome | 61 fps; 16.6 ms frames (vsync at 60 Hz); 1.44 ms GPU time; 65,536 particles, 1 draw call, 1 compute pass | 60 fps                     |
+| Low tier CPU simulation step, 4,096 particles                | 4.0 ms on the build machine                                                                              | test < 16.7 ms (one frame) |
 
-Frame rates on real devices are the one measurement still to take. The build
-machine has no GPU, so it renders in software at 2–7 fps. Run
-`npm run profile-frames` on a mid-range laptop (target 60 fps on the high tier)
-and a mid-range phone (target 30 fps on the low tier).
+**The high tier on a laptop.** On a MacBook Air 13-inch (Apple M5, 16 GB) in
+Chrome, the high tier holds 61 fps: its 16.6 ms frame time is the display's
+60 Hz refresh, not the work. The GPU needs 1.44 ms a frame for all 65,536
+particles (one compute pass, one draw call), under a tenth of the 16.7 ms
+budget, according to Stats for nerds.
+
+**Still to measure:** a mid-range phone on the low tier (target 30 fps). The
+build machine has no GPU and renders in software at 2–7 fps, which says
+nothing about real hardware. Run `npm run profile-frames` on the device, or
+read Stats for nerds.
 
 ## Run it
 
