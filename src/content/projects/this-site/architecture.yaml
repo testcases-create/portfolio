@@ -5,12 +5,16 @@ nodes:
   - { id: engine, label: World engine, kind: service }
   - { id: kernel, label: Compute kernel (WebGPU or WebGL2), kind: model }
   - { id: poster, label: Poster stills, kind: store }
+  - { id: lab, label: Lab demos and explorer, kind: service }
 edges:
   - { from: visitor, to: pages }
   - { from: pages, to: boot }
   - { from: boot, to: engine, label: GPU available }
   - { from: boot, to: poster, label: no usable GPU }
   - { from: engine, to: kernel }
+  - { from: pages, to: lab, label: on demand }
+  - { from: lab, to: engine }
 flows:
   - { name: Full world, path: [visitor, pages, boot, engine, kernel] }
   - { name: Poster, path: [visitor, pages, boot, poster] }
+  - { name: Open the explorer, path: [visitor, pages, lab, engine, kernel] }

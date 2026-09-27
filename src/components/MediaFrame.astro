@@ -31,6 +31,10 @@ const { media, widths = [480, 960, 1440], sizes = '(min-width: 900px) 40vw, 100v
     place-items: center;
     background: var(--raised);
     border: 1px dashed var(--line);
+  }
+
+  /* An image is cropped to the frame; a placeholder caption may grow it instead of being cut off. */
+  .frame:has(img) {
     overflow: hidden;
   }
 
@@ -42,7 +46,7 @@ const { media, widths = [480, 960, 1440], sizes = '(min-width: 900px) 40vw, 100v
 
   figcaption {
     max-width: 36ch;
-    padding: var(--space-4);
+    padding: var(--space-3);
     text-align: center;
     color: var(--muted);
   }

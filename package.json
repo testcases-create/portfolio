@@ -24,7 +24,11 @@
     "og-images": "node --experimental-strip-types scripts/og-images.ts",
     "resume-pdf": "node --experimental-strip-types scripts/resume-pdf.ts",
     "sample-attention": "node --experimental-strip-types scripts/sample-attention.ts",
-    "precompute-attention": "python3 scripts/precompute-attention.py"
+    "precompute-attention": "python3 scripts/precompute-attention.py",
+    "screenshots": "node --experimental-strip-types scripts/screenshots.ts",
+    "profile-frames": "node --experimental-strip-types scripts/profile-frames.ts",
+    "bench": "vitest run src/graphics/sim.cpu.perf.test.ts",
+    "content-guide": "node --experimental-strip-types scripts/content-guide.ts && prettier --write CONTENT_GUIDE.md --log-level warn"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.3.0",

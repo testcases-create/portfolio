@@ -1,6 +1,6 @@
 # Phase 0: plan and prototype
 
-Status: Phases 0–3 approved and merged. Phase 4 (architecture explorer and the Lab) complete; results in section 16.
+Status: Phases 0–4 approved and merged. Phase 5 (QA and polish) complete; results in section 17.
 
 ## 1. The brief in five lines
 
@@ -690,3 +690,83 @@ These add to section 7. Where one changes an earlier decision, the note says so.
 - **One end-to-end fix.** "Any input skips the intro" now waits until the
   intro is listening before it presses a key. Before that, it raced the
   intro chunk under load.
+
+## 17. Phase 5 results (27 September 2026)
+
+**Checks run:**
+
+| Check | Result |
+|---|---|
+| check-content | 202 `[EDIT]` placeholders in 12 files, and 7 empty frames. Strict build fails as designed. |
+| Unit tests | 142 pass |
+| Playwright + axe | 93 pass. 15 skipped: desktop-only world and 3D tests on the mobile project. |
+| Budgets | 43 pages and 5 lazy features, all within budget |
+| Lighthouse CI | Every assertion passes on all 6 URLs |
+
+**Screenshots.** Home, a project and the Lab at 390 px and 1440 px in both
+themes are in `docs/screenshots/`, written by `npm run screenshots` on the
+medium tier.
+
+**Critique and fixes:**
+
+1. **Placeholder captions were clipped in small cover frames.** Now only
+   images are cropped, and a caption can make its frame taller.
+2. **Toggles had no visible pressed state.** The theme and pause buttons only
+   exposed it to screen readers. A pressed `.button` now has a heavier
+   border.
+3. **The contents list kept a stale highlight** after scrolling back above
+   the first section. It now clears.
+4. **"Open the Lab" was crowded** against the list above it. It now has
+   space.
+5. **"This site" quoted Phase 2 numbers.** It is updated with this phase's
+   measurements, including its title, now "304 KB".
+6. **Things that look wrong in screenshots but aren't:**
+   - A full-page screenshot captures the fixed world canvas only once, so on
+     phones the gaps between text blocks look empty. Viewport screenshots
+     confirm each gap shows its formation.
+   - Formations mid-morph look like blobs because software rendering runs
+     at about 1.6 fps.
+
+**Measured:**
+
+| What | Result | Target |
+|---|---|---|
+| Lighthouse mobile, Home (3 runs) | 99–100; LCP 1.66–1.96 s (hero text), CLS 0.001, TBT 0 ms | 90; 2.0 s; 0.05; 200 ms |
+| Lighthouse mobile, projects / deep dive / presentation / résumé / Lab | 99–100 / 99 / 100 / 100 / 99; accessibility, best practices, SEO 100 | 95 |
+| Frame times, headless Chromium without a GPU (`npm run profile-frames`) | high → stepped down to medium: 2.1 fps; medium: 1.9 fps; low: 7.4 fps (median 133 ms) | real hardware: 60 fps high, 30 fps low |
+| Low tier CPU simulation step, 4,096 particles, mid-transition | median 4.0 ms, p95 4.6 ms (build machine CPU) | leaves room in a 33 ms frame |
+| Engine / initial JS / lazy features | unchanged from Phase 4: 303.9 KB; 9.3–10.4 KB (Home 39.9); 3.7–7.6 KB | as before |
+
+**Home LCP variance.** Home's LCP ranges from 1.66 to 1.96 s over repeated
+runs with identical network requests, and first paint moves with it (1.28 to
+1.45 s). The spread comes from Lighthouse's simulated CPU time, not the page.
+I tested moving the hero line to the preloaded sans, in case it was waiting
+for the serif font. That made no difference, so I reverted it.
+
+**Deviations:**
+
+- **Frame rates on real devices are not measured.** The build machine has no
+  GPU. `npm run profile-frames` is the tool; run it on a mid-range laptop and
+  phone.
+- **The poster stills are the medium-tier captures from Phase 2.** A Phase 5
+  recapture on this machine came out worse: the light wide still was blank,
+  and the phone stills framed the formation smaller. `capture-poster` now
+  takes `POSTER_TIER=high`, for a machine with a GPU.
+- **CPU timing moved to a test.** Vitest 5 changed its benchmark API, so the
+  CPU simulation timing is a test with a loose assertion (under 8 ms), and
+  `npm run bench` runs it.
+
+**The ten `[EDIT]` items to fill first** (also at the top of
+`CONTENT_GUIDE.md`):
+
+1. Your name (`site.json` `name`, and `siteUrl`).
+2. Your email (`links.email`).
+3. GitHub and LinkedIn (`links.github`, `links.linkedin`).
+4. Current title, company and years (`current`, `yearsExperience`).
+5. Positioning line (`positioning`).
+6. Three impact lines with measured numbers (`impact`).
+7. Availability and location.
+8. Your current role: title, dates, highlights
+   (`src/content/experience/halden-systems.md`).
+9. Your three strongest projects: outcome title and headline metric.
+10. The public repository link for this site (`this-site` `links.repo`).
