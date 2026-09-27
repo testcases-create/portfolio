@@ -7,6 +7,13 @@ name: Precompute attention
 # For the pull request step, the repository must allow it: Settings → Actions →
 # General → Workflow permissions → tick "Allow GitHub Actions to create and
 # approve pull requests".
+#
+# The pull request has to pass CI first time, so this workflow also updates
+# every file generated from the content (CONTENT_GUIDE.md lists the sample's
+# placeholder, which the real data removes), runs the unit tests and lint, and
+# then starts CI on the new branch itself: pushes and pull requests made with
+# the workflow's own token don't trigger other workflows, but a
+# workflow_dispatch does.
 on:
   workflow_dispatch:
     inputs:
@@ -18,6 +25,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write # to start CI on the new branch
 
 concurrency:
   group: precompute-attention
@@ -49,7 +57,6 @@ jobs:
       - run: npm ci
       - name: Check the data
         run: |
-          npx vitest run src/lab/watch-attention
           node -e "
             const fs = require('fs');
             const zlib = require('zlib');
@@ -59,6 +66,13 @@ jobs:
             console.log('attention.json:', (size / 1000).toFixed(1), 'KB gzipped (budget 120 KB)');
             if (size > 120000) throw new Error('over the 120 KB budget');
           "
+      # Files generated from the content must follow it, or CI's freshness test fails.
+      - name: Regenerate the content guide
+        run: npm run content-guide
+      - name: Unit tests and lint, as CI runs them
+        run: |
+          npm test
+          npm run lint
 
       - name: Open a pull request
         env:
@@ -68,11 +82,10 @@ jobs:
             Computed by the "Precompute attention" workflow with
             scripts/precompute-attention.py. It replaces the rule-based sample,
             so the Lab's "sample data" notice disappears and the file no longer
-            blocks a production build. The attention tests and the 120 KB budget
-            passed in the workflow. Pull requests opened with the workflow's
-            token don't start other workflows, so CI hasn't run on this one yet:
-            close and reopen it, or push a commit to the branch, to run CI before
-            merging.
+            blocks a production build. CONTENT_GUIDE.md is regenerated to match.
+            The unit tests, lint and the 120 KB budget passed in the workflow,
+            and the workflow started CI on this branch, so its checks appear
+            here as usual.
         run: |
           if git diff --quiet -- public/lab/attention.json; then
             echo "attention.json is unchanged; nothing to propose."
@@ -82,7 +95,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"
-          git add public/lab/attention.json
+          git add public/lab/attention.json CONTENT_GUIDE.md
           git commit -m "feat(lab): attention data computed from $MODEL"
           git push origin "$branch"
           gh pr create \
@@ -90,3 +103,6 @@ jobs:
             --head "$branch" \
             --title "feat(lab): real attention data from $MODEL" \
             --body "$BODY Model: $MODEL. Run: $RUN_URL"
+          # The push above doesn't trigger CI (it was made with this workflow's
+          # token), so start it explicitly; its checks attach to the branch's commit.
+          gh workflow run ci.yml --ref "$branch"

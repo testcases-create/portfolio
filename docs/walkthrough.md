@@ -421,3 +421,15 @@ I checked two other ideas and rejected them:
 Lighthouse CI now judges Home's LCP on the median of its runs (it used the
 best run before), and warns above 1.85 s, before the 2.0 s budget fails.
 _Where:_ `src/scripts/boot.ts` (`afterFirstPaint`), `lighthouserc.json`.
+
+**A generated file has to follow its source.** The first run of the
+attention workflow opened a pull request that failed CI. The real data
+removed the sample's placeholder, but the content guide, which is generated
+from the placeholders, still listed it, and its freshness test caught the
+mismatch.
+
+The workflow now regenerates the guide and commits it with the data. It runs
+the unit tests and lint before opening the pull request. It also starts CI on
+the new branch itself: GitHub doesn't start workflows for pushes made with a
+workflow's own token, except for an explicit `workflow_dispatch`, which CI now
+accepts. _Where:_ `.github/workflows/attention.yml`, `.github/workflows/ci.yml`.
