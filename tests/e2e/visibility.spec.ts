@@ -67,34 +67,64 @@ async function settleAndMeasure(page: Page, theme: 'dark' | 'light') {
   return visibleShare(page, theme);
 }
 
+/** The Stats for nerds snapshot, which the engine publishes while the panel is open. */
+const stats = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<Record<string, string>>((resolve) => {
+        const panel = document.getElementById('world-stats');
+        const done = (detail: Record<string, string>) => {
+          if (panel) panel.hidden = true;
+          resolve(detail);
+        };
+        if (panel) panel.hidden = false;
+        document.documentElement.addEventListener(
+          'world:stats',
+          (e) => done((e as CustomEvent<Record<string, string>>).detail),
+          { once: true },
+        );
+        setTimeout(() => done({}), 2000);
+      }),
+  );
+
 for (const tier of ['high', 'medium', 'low'] as const) {
   test(`the ${tier} tier draws visible particles in the light theme, at load and after switching themes`, async ({
     page,
   }) => {
     test.slow();
+    const logs: string[] = [];
+    page.on('console', (m) => ['error', 'warning'].includes(m.type()) && logs.push(m.text().slice(0, 300)));
+    page.on('pageerror', (e) => logs.push(`page error: ${e.message.slice(0, 300)}`));
     await open(page, tier, 'light');
     const atLoad = await settleAndMeasure(page, 'light');
     // A tier that fails on its first frames steps down; read what actually ran.
     const ran = await page.locator('html').getAttribute('data-world-tier');
     test.skip(ran !== tier, `this browser can't run the ${tier} tier here (it ran as ${ran})`);
     test.info().annotations.push({ type: 'tier', description: `${tier} ran as ${ran}` });
-
-    expect(atLoad, `light theme at load: ${(atLoad * 100).toFixed(2)}% visible`).toBeGreaterThan(MIN_VISIBLE);
+    const lightStats = await stats(page);
 
     // Switching themes while running takes the other path through the render code.
     await toggleTheme(page);
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     const dark = await settleAndMeasure(page, 'dark');
-    expect(dark, `dark theme: ${(dark * 100).toFixed(2)}% visible`).toBeGreaterThan(MIN_VISIBLE);
+    const darkStats = await stats(page);
 
     await toggleTheme(page);
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
     const back = await settleAndMeasure(page, 'light');
-    expect(back, `light theme after switching: ${(back * 100).toFixed(2)}% visible`).toBeGreaterThan(
-      MIN_VISIBLE,
-    );
 
+    // Everything measured goes into each message, so a failure in CI explains itself.
+    const pct = (v: number) => `${(v * 100).toFixed(2)}%`;
+    const report = [
+      `visible: light at load ${pct(atLoad)}, dark ${pct(dark)}, light after switching ${pct(back)}`,
+      `stats (light): ${JSON.stringify(lightStats)}`,
+      `stats (dark): ${JSON.stringify(darkStats)}`,
+      `console: ${logs.join(' | ') || '(empty)'}`,
+    ].join('\n');
+    expect(atLoad, `light theme at load\n${report}`).toBeGreaterThan(MIN_VISIBLE);
+    expect(dark, `dark theme\n${report}`).toBeGreaterThan(MIN_VISIBLE);
+    expect(back, `light theme after switching\n${report}`).toBeGreaterThan(MIN_VISIBLE);
     // The light theme must read at least as well as the dark one.
-    expect(back).toBeGreaterThan(dark * 0.9);
+    expect(back, `light against dark\n${report}`).toBeGreaterThan(dark * 0.9);
   });
 }
