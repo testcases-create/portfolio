@@ -1,0 +1,94 @@
+---
+// Markup for "Scale a system". The controls and read-outs are plain HTML, so
+// they work with a keyboard and a screen reader; scale-system.ts drives them
+// and draws the 3D view into [data-view].
+import { LIMITS } from './logic';
+---
+
+<div class="demo scale" data-demo="scale-system" hidden>
+  <div class="demo-view" data-view>
+    <div class="demo-labels" aria-hidden="true" data-labels></div>
+  </div>
+  <div class="demo-side">
+    <form class="demo-controls" data-controls>
+      <label class="field">
+        <span>
+          Traffic{' '}
+          <output name="rpsOut" for="scale-rps">
+            300
+          </output>{' '}
+          requests per second
+        </span>
+        <input
+          id="scale-rps"
+          name="rps"
+          type="range"
+          min={LIMITS.rps[0]}
+          max={LIMITS.rps[1]}
+          step="10"
+          value="300"
+        />
+      </label>
+      <fieldset class="field stepper">
+        <legend>Service replicas</legend>
+        <button type="button" class="button" data-step="-1" aria-label="Remove a replica">
+          −
+        </button>
+        <output name="replicasOut" aria-live="polite">
+          2
+        </output>
+        <button type="button" class="button" data-step="1" aria-label="Add a replica">
+          +
+        </button>
+      </fieldset>
+      <label class="check">
+        <input name="cache" type="checkbox" />
+        Add a cache in front of the database
+      </label>
+      <fieldset class="field">
+        <legend>Inject a failure</legend>
+        <label class="check">
+          <input type="radio" name="failure" value="none" checked /> None
+        </label>
+        <label class="check">
+          <input type="radio" name="failure" value="replica" /> Crash replica 1
+        </label>
+        <label class="check">
+          <input type="radio" name="failure" value="slow-db" /> Slow the database 5×
+        </label>
+      </fieldset>
+      <div class="demo-actions">
+        <button type="button" class="button" data-pause>
+          Pause
+        </button>
+        <button type="button" class="button" data-reset>
+          Reset
+        </button>
+      </div>
+    </form>
+    <dl class="demo-metrics" data-metrics>
+      <div>
+        <dt>p95 latency</dt>
+        <dd data-metric="p95">–</dd>
+      </div>
+      <div>
+        <dt>Successful per second</dt>
+        <dd data-metric="throughput">–</dd>
+      </div>
+      <div>
+        <dt>Error rate</dt>
+        <dd data-metric="errors">–</dd>
+      </div>
+      <div>
+        <dt>Database busy</dt>
+        <dd data-metric="db">–</dd>
+      </div>
+      <div>
+        <dt>Write queue</dt>
+        <dd data-metric="queue">–</dd>
+      </div>
+    </dl>
+    <ul class="demo-list small" data-replicas aria-label="Replicas"></ul>
+    <p class="small" data-summary aria-live="polite"></p>
+  </div>
+</div>

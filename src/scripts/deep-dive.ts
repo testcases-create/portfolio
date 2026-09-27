@@ -1,6 +1,7 @@
 // Deep-dive enhancements, re-applied on every page view (the client router
 // keeps this module loaded): the Skim/Full toggle, remembered across projects,
-// and the current section highlighted in the "On this page" list.
+// the current section highlighted in the "On this page" list, and the
+// "Explore in 3D" button.
 import { read, write } from '../lib/preferences';
 
 const VIEW_KEY = 'pref:view';
@@ -28,6 +29,7 @@ function init() {
 
   // The toggle only means something with JavaScript, so it starts hidden.
   article.querySelector<HTMLElement>('.view-toggle')?.removeAttribute('hidden');
+  article.querySelector<HTMLElement>('[data-explore-open]')?.removeAttribute('hidden');
   setView(article, read(store, VIEW_KEY) === 'skim' ? 'skim' : 'full');
 
   const links = new Map(
@@ -50,6 +52,13 @@ function init() {
 }
 
 document.addEventListener('click', (event) => {
+  // "Explore in 3D": the explorer loads only now (BRIEF.md 6.5).
+  const explore = (event.target as Element | null)?.closest('[data-explore-open]');
+  const dialog = explore?.parentElement?.querySelector<HTMLDialogElement>('[data-explorer]');
+  if (dialog) {
+    void import('../graphics/explorer').then(({ openExplorer }) => openExplorer(dialog));
+    return;
+  }
   const button = (event.target as Element | null)?.closest<HTMLButtonElement>('[data-view-choice]');
   const article = button?.closest<HTMLElement>('.deep-dive');
   if (!button || !article) return;

@@ -1,0 +1,274 @@
+---
+// "Explore in 3D" (BRIEF.md 6.5): a dialog that loads the architecture into
+// the world as an explorable graph. The dialog's text list of components and
+// flows is rendered here at build time, so it is always there; the 3D part
+// (src/graphics/explorer.ts) loads only when the button is pressed. The button
+// needs JavaScript, so it starts hidden.
+import type { Architecture } from '../lib/schemas';
+
+interface Props {
+  arch: Architecture;
+  title: string;
+}
+const { arch, title } = Astro.props;
+const label = (id: string) => arch.nodes.find((n) => n.id === id)?.label ?? id;
+const kindLabel: Record<string, string> = {
+  client: 'client',
+  gateway: 'gateway',
+  service: 'service',
+  model: 'model',
+  store: 'data store',
+  queue: 'queue',
+  cache: 'cache',
+  external: 'external',
+};
+---
+
+<div class="explore">
+  <button type="button" class="button" data-explore-open hidden>
+    Explore in 3D
+  </button>
+  <dialog class="explorer" aria-labelledby="explorer-title" data-explorer>
+    <div class="panel">
+      <div class="panel-head">
+        <h2 id="explorer-title">Architecture: {title}</h2>
+        <button type="button" class="button" data-explore-close>
+          Close
+        </button>
+      </div>
+      <p class="status small" data-explore-status aria-live="polite"></p>
+      <h3 class="list-title small muted">Components</h3>
+      <ul class="choices" role="list">
+        {arch.nodes.map((n) => (
+          <li>
+            <button type="button" class="choice" data-node={n.id} aria-pressed="false">
+              {n.label} <span class="muted">{kindLabel[n.kind]}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <h3 class="list-title small muted">Request flows</h3>
+      <ul class="choices" role="list">
+        {arch.flows.map((f, i) => (
+          <li>
+            <button type="button" class="choice" data-flow={i} aria-pressed="false">
+              <strong>{f.name}</strong>
+              <span class="muted">{f.path.map(label).join(' → ')}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p class="small muted help" data-explore-help>
+        Choose a component to focus it, or a flow to watch its requests. In the view, drag or use the arrow
+        keys to turn it and + or − to zoom. Escape closes.
+      </p>
+    </div>
+    <div class="stage" data-explore-stage tabindex="0" aria-label="3D view of the architecture" role="group">
+      <div class="labels" aria-hidden="true">
+        {arch.nodes.map((n) => (
+          <button type="button" tabindex="-1" class="node-label" data-label={n.id}>
+            {n.label}
+          </button>
+        ))}
+      </div>
+    </div>
+    <script type="application/json" data-explore-data set:html={JSON.stringify(arch)} />
+  </dialog>
+</div>
+
+<style is:global>
+  .explore {
+    margin-top: var(--space-4);
+  }
+
+  /* While exploring, the page steps aside: only the world and the dialog show. */
+  html[data-world-explore] #world {
+    position: fixed;
+    inset: 0;
+    height: auto;
+  }
+
+  html[data-world-explore] body > :not(#world) {
+    visibility: hidden;
+  }
+
+  html[data-world-explore] .explorer {
+    visibility: visible;
+  }
+
+  .explorer {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: var(--text);
+    background: transparent;
+  }
+
+  .explorer[open] {
+    display: grid;
+    grid-template-columns: minmax(18rem, 24rem) 1fr;
+  }
+
+  .explorer::backdrop {
+    background: transparent;
+  }
+
+  /* No live world (poster tier): the dialog is an opaque list. */
+  .explorer[data-fallback] {
+    background: var(--ground);
+  }
+
+  .explorer .panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-5);
+    overflow-y: auto;
+    background: color-mix(in oklab, var(--ground) 94%, transparent);
+    border-inline-end: 1px solid var(--line);
+  }
+
+  .explorer .panel > * {
+    flex-shrink: 0;
+  }
+
+  .explorer .panel-head {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .explorer h2 {
+    margin: 0;
+    font-size: var(--step-sub);
+  }
+
+  .explorer .status {
+    min-height: 1.5em;
+    margin: 0;
+  }
+
+  .explorer .list-title {
+    margin: var(--space-2) 0 0;
+    font-weight: 400;
+  }
+
+  .explorer .choices {
+    display: grid;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .explorer .choice {
+    display: grid;
+    gap: 0.1em;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: var(--space-2) var(--space-3);
+    font: inherit;
+    text-align: start;
+    color: var(--text);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    cursor: pointer;
+  }
+
+  .explorer .choice:hover {
+    border-color: var(--line);
+  }
+
+  .explorer .choice[aria-pressed='true'] {
+    border-color: var(--sde);
+    background: color-mix(in oklab, var(--sde) 12%, transparent);
+  }
+
+  .explorer .choice .muted {
+    font-size: var(--step-small);
+  }
+
+  .explorer .help {
+    margin-top: auto;
+  }
+
+  .explorer .stage {
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .explorer .stage:active {
+    cursor: grabbing;
+  }
+
+  .explorer .stage:focus-visible {
+    outline: 2px solid var(--sde);
+    outline-offset: -4px;
+  }
+
+  .explorer[data-fallback] .stage {
+    display: none;
+  }
+
+  .explorer .labels {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .explorer .node-label {
+    position: absolute;
+    left: 0;
+    top: 0;
+    padding: 0.15em 0.5em;
+    font: inherit;
+    font-size: var(--step-small);
+    white-space: nowrap;
+    color: var(--text);
+    background: color-mix(in oklab, var(--ground) 80%, transparent);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  .explorer .node-label[data-state='focus'] {
+    border-color: var(--sde);
+  }
+
+  .explorer .node-label[data-state='dim'] {
+    opacity: 0.45;
+  }
+
+  /* Narrow screens: the view on top, the list below. */
+  @media (max-width: 899px), (max-aspect-ratio: 11/10) {
+    .explorer[open] {
+      grid-template-columns: 1fr;
+      grid-template-rows: minmax(40%, 1fr) auto;
+    }
+
+    .explorer .stage {
+      grid-row: 1;
+    }
+
+    .explorer .panel {
+      grid-row: 2;
+      max-height: 55vh;
+      border-inline-end: 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .explorer[data-fallback] .panel {
+      grid-row: 1 / -1;
+      max-height: none;
+    }
+  }
+</style>

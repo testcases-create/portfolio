@@ -1,6 +1,6 @@
 # Phase 0: plan and prototype
 
-Status: Phases 0–2 approved and merged. Phase 3 (pages) complete; decisions in section 14, results in section 15.
+Status: Phases 0–3 approved and merged. Phase 4 (architecture explorer and the Lab) complete; results in section 16.
 
 ## 1. The brief in five lines
 
@@ -616,3 +616,77 @@ These add to section 7. Where one changes an earlier decision, the note says so.
 - **Waiting for Phase 4.** The Lab teaser on Home has no links yet, and there is no "Explore in 3D" control. Both depend on Phase 4's pages.
 - **Poster on phones.** On narrow screens the poster appears in the gaps between text, like the live world, never behind text. In the hero's gap it is a CSS glow, so the hero text stays the LCP element.
 - **Presentation pages.** They don't load the engine. They are indexable, with a canonical link to their project; `noindex` cost 34 SEO points in Lighthouse and gained nothing.
+
+## 16. Phase 4 results (27 September 2026)
+
+**Built:**
+
+- **Architecture explorer.** "Explore in 3D" on every project page opens a
+  `<dialog>`:
+  - The world morphs into the project's architecture graph, written into the
+    SDE formation's slots.
+  - Nodes can be focused from the list, by clicking a label, or by clicking
+    near a node. Flows can be chosen.
+  - The view turns by dragging or with the arrow keys, and zooms with the
+    wheel or with + and −.
+  - The list of components and flows is always there. On the poster tier it
+    is the whole dialog, with the reason there is no 3D view.
+- **The Lab** (`/lab/`), linked from the nav and the Home teaser. Three
+  demos, each loaded only when opened:
+  - **Train a network.** A 2 → 8 → 8 → 1 MLP. It trains as WebGPU compute on
+    the high tier and on the CPU otherwise. The field is a 2D canvas you can
+    click or drive with the keyboard. The network is drawn in 3D: edge
+    thickness shows weight size, and pulses show activations.
+  - **Watch attention.** Sentence, layer and head selectors, and token
+    buttons. The result is a ranked list in text, plus 3D arcs, a plain
+    description of what the head does, and a "step through the layers"
+    control.
+  - **Scale a system.** A discrete-event simulation. The controls are
+    traffic, replicas, a cache, and failures (crash a replica, slow the
+    database). The read-outs are p95 latency, successful responses per
+    second, error rate, database load and write-queue depth. There is a
+    per-replica list and a 3D view of packets.
+- **Attention scripts.** `scripts/precompute-attention.py` computes the real
+  data from distilgpt2. `scripts/sample-attention.ts` writes marked sample
+  data meanwhile.
+- **Budget checks** for every lazy feature (`LAZY` in `scripts/budgets.ts`),
+  and a performance assertion of 95 or more on `/lab/` and `/resume/`.
+
+**Measured:**
+
+| What | Result | Budget |
+|---|---|---|
+| Architecture explorer | 3.7 KB | 25 KB |
+| Lab: Train a network (entry + 3D scene + WebGPU trainer) | 7.6 KB | 35 KB |
+| Lab: Watch attention | 5.4 KB code + 8.8 KB data | 25 KB + 120 KB |
+| Lab: Scale a system | 6.9 KB | 25 KB |
+| Engine after first paint | 303.9 KB (was 297.6) | 320 KB |
+| Initial JS: Home / Lab / project pages | 39.9 / 10.0 / 10.4 KB | 50 KB |
+| WebGPU training kernels against the CPU specification (40 steps) | max difference 1.2 × 10⁻⁷; weights moved up to 0.94 | test: < 10⁻⁴ |
+| Lighthouse mobile, Lab | 99/100/100/100; LCP 1.81 s, TBT 0 ms | 95 |
+| Lighthouse mobile, Home (6 runs) | 99–100; LCP median 1.81 s (1.66–1.96 s), always the hero text | 2.0 s |
+| Tests | 139 unit, 93 end-to-end | — |
+
+**Deviations:**
+
+- **Attention data is a sample for now.** Hugging Face is blocked from the
+  build container, so the real distilgpt2 attention couldn't be computed
+  here. Run `pip install torch transformers` and then
+  `npm run precompute-attention` to replace it. Until then:
+  - the demo says it shows sample data;
+  - the file's `[EDIT]` tag keeps the production build failing.
+- **No live model mode.** The brief makes the in-browser live mode for
+  "Watch attention" optional. It isn't built.
+- **The explorer borrows the SDE slots** instead of adding a sixth
+  formation. This keeps the kernel and its memory unchanged.
+- **The engine grew by 6.3 KB.** three.js ships as one module, so the
+  classes the Lab uses (tubes, cylinders, edges, instancing) join the shared
+  three.js chunk. That way they are downloaded once, not twice.
+- **Demo toggles change their label** ("Pause" and "Play") instead of using
+  `aria-pressed`. A label that changes and a pressed state together would
+  say the same thing twice.
+- **Global `[hidden]` rule.** `[hidden]` now wins over classes that set
+  `display`. Before this, `.button` elements marked `hidden` stayed visible.
+- **One end-to-end fix.** "Any input skips the intro" now waits until the
+  intro is listening before it presses a key. Before that, it raced the
+  intro chunk under load.

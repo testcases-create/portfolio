@@ -4,6 +4,11 @@
   box-sizing: border-box;
 }
 
+/* The hidden attribute always wins, even over classes that set display (.button). */
+[hidden] {
+  display: none !important;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;

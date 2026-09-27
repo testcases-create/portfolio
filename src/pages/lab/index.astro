@@ -1,0 +1,260 @@
+---
+// The Lab (BRIEF.md 5): one interactive demo per role. Each loads only when
+// its button is pressed, and each has its own budget (PLAN.md 7.8).
+import Base from '../../layouts/Base.astro';
+import AreaTag from '../../components/AreaTag.astro';
+import ScaleSystem from '../../lab/scale-system/Demo.astro';
+import TrainNetwork from '../../lab/train-network/Demo.astro';
+import WatchAttention from '../../lab/watch-attention/Demo.astro';
+---
+
+<Base
+  title="The Lab"
+  description="Three small interactive demos: train a neural network in your browser, watch attention inside a language model, and scale a distributed system."
+  formation="converge"
+  mode="band"
+>
+  <h1>The Lab</h1>
+  <p class="prose lede">
+    Three small demos, one for each kind of work I do. Each one loads only when you open it, and each works
+    with a keyboard.
+  </p>
+
+  <section class="lab-demo" aria-labelledby="train-title">
+    <h2 id="train-title">Train a network in your browser</h2>
+    <p class="tag">
+      <AreaTag area="ml" />
+    </p>
+    <p class="prose">
+      Click the field to place points of two classes, and a small neural network learns to separate them while
+      you watch. The shading is what the network predicts for every point. Beside it, the network itself:
+      thicker edges are larger weights, and pulses show how a point's values pass through.
+    </p>
+    <button type="button" class="button" data-primary data-demo-open="train-network" hidden>
+      Open the demo
+    </button>
+    <p class="small muted" data-needs-js>
+      This demo needs JavaScript.
+    </p>
+    <TrainNetwork />
+  </section>
+
+  <section class="lab-demo" aria-labelledby="attention-title">
+    <h2 id="attention-title">Watch attention</h2>
+    <p class="tag">
+      <AreaTag area="llm" />
+    </p>
+    <p class="prose">
+      A language model reads a sentence as tokens, and each token looks back at earlier ones to decide what
+      comes next. Pick a sentence and a token to see where it looks, layer by layer and head by head. Brighter
+      arcs carry more attention.
+    </p>
+    <button type="button" class="button" data-primary data-demo-open="watch-attention" hidden>
+      Open the demo
+    </button>
+    <p class="small muted" data-needs-js>
+      This demo needs JavaScript.
+    </p>
+    <WatchAttention />
+  </section>
+
+  <section class="lab-demo" aria-labelledby="scale-title">
+    <h2 id="scale-title">Scale a system</h2>
+    <p class="tag">
+      <AreaTag area="sde" />
+    </p>
+    <p class="prose">
+      Requests flow through a load balancer, service replicas, a cache, a queue and a database. Turn up the
+      traffic until it breaks, then add replicas or a cache, or crash something, and watch p95 latency,
+      throughput and errors respond.
+    </p>
+    <button type="button" class="button" data-primary data-demo-open="scale-system" hidden>
+      Open the demo
+    </button>
+    <p class="small muted" data-needs-js>
+      This demo needs JavaScript.
+    </p>
+    <ScaleSystem />
+  </section>
+</Base>
+
+<script>
+  import '../../scripts/lab';
+</script>
+
+<style is:global>
+  .lede {
+    margin-block: var(--space-4) var(--space-7);
+  }
+
+  .lab-demo {
+    display: grid;
+    gap: var(--space-4);
+    margin-block-end: var(--space-9);
+  }
+
+  .lab-demo h2,
+  .lab-demo .tag {
+    margin: 0;
+  }
+
+  .lab-demo > .button {
+    justify-self: start;
+  }
+
+  .demo {
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .demo[hidden] {
+    display: none;
+  }
+
+  @media (min-width: 900px) {
+    .demo {
+      grid-template-columns: minmax(0, 1.6fr) minmax(16rem, 1fr);
+      align-items: start;
+    }
+  }
+
+  .demo-side {
+    display: grid;
+    gap: var(--space-5);
+    align-content: start;
+  }
+
+  .demo-view {
+    position: relative;
+    min-height: 18rem;
+    aspect-ratio: 16 / 11;
+    overflow: hidden;
+    background: var(--raised);
+    border: 1px solid var(--line);
+  }
+
+  .demo[data-view3d='off'] .demo-view:not([data-keep]) {
+    display: none;
+  }
+
+  .lab-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .demo-labels {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    font-size: var(--step-small);
+  }
+
+  .demo-labels span {
+    position: absolute;
+    left: 0;
+    top: 0;
+    padding: 0.1em 0.4em;
+    white-space: nowrap;
+    color: var(--text);
+    background: color-mix(in oklab, var(--raised) 80%, transparent);
+    border-radius: var(--radius-control);
+  }
+
+  .demo-controls {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .demo-controls fieldset {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .demo-controls legend,
+  .demo-controls .field > span {
+    display: block;
+    margin-block-end: var(--space-2);
+    font-weight: 560;
+  }
+
+  .demo-controls input[type='range'] {
+    width: 100%;
+    min-height: 2.75rem;
+    accent-color: var(--sde);
+  }
+
+  .demo-controls select {
+    min-height: 2.75rem;
+    width: 100%;
+    font: inherit;
+    color: var(--text);
+    background: var(--ground);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+  }
+
+  .check {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+    min-height: 2.75rem;
+  }
+
+  .check input {
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: var(--sde);
+  }
+
+  .stepper {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .stepper legend {
+    width: 100%;
+  }
+
+  .stepper output {
+    min-width: 2ch;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+
+  .demo-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .demo-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    gap: var(--space-3) var(--space-5);
+    margin: 0;
+  }
+
+  .demo-metrics dt {
+    font-size: var(--step-small);
+    color: var(--muted);
+  }
+
+  .demo-metrics dd {
+    margin: 0;
+    font-size: var(--step-sub);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .demo-list {
+    display: grid;
+    gap: var(--space-1);
+    margin: 0;
+    padding-inline-start: 1.2em;
+  }
+</style>
