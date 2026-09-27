@@ -1,0 +1,20 @@
+---
+// Renders text, turning each [EDIT] tag into a visible badge. Badges only ever
+// reach dev and preview deploys: production builds fail while any tag remains.
+import { segments } from '../lib/placeholders';
+
+interface Props {
+  text: string;
+}
+const parts = segments(Astro.props.text);
+---
+
+{parts.map((part) =>
+  part.kind === 'text' ? (
+    part.value
+  ) : (
+    <span class="edit-badge" title="Placeholder: replace before launch (CONTENT_GUIDE.md)">
+      EDIT
+    </span>
+  ),
+)}

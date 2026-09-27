@@ -1,0 +1,79 @@
+---
+import { site } from '../lib/site';
+import { strip } from '../lib/placeholders';
+
+const nav = [{ href: '/projects/', label: 'Work' }];
+const path = Astro.url.pathname;
+---
+
+<header class="site-header wrap">
+  <a class="home" href="/">
+    {strip(site.name)}
+  </a>
+  <nav aria-label="Main">
+    <ul>
+      {nav.map((item) => (
+        <li>
+          <a href={item.href} aria-current={path.startsWith(item.href) ? 'page' : undefined}>
+            {item.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+  <div class="world-controls">
+    <button type="button" class="button" data-action="pause" aria-pressed="false">
+      Pause motion
+    </button>
+    <button type="button" class="button" data-action="theme" aria-pressed="false">
+      Light theme
+    </button>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-6);
+    padding-block: var(--space-4);
+  }
+
+  .home {
+    font-weight: 620;
+    font-variation-settings: 'wdth' 112;
+    text-decoration: none;
+  }
+
+  ul {
+    display: flex;
+    gap: var(--space-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  nav a {
+    display: inline-block;
+    padding-block: var(--space-2);
+    text-decoration: none;
+  }
+
+  nav a[aria-current='page'] {
+    text-decoration: underline;
+  }
+
+  .world-controls {
+    display: flex;
+    gap: var(--space-2);
+    margin-inline-start: auto;
+  }
+
+  .world-controls .button {
+    min-height: 2.5rem;
+    font-size: var(--step-small);
+  }
+</style>

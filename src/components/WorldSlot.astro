@@ -1,0 +1,16 @@
+---
+// The single persistent canvas slot. transition:persist keeps this element
+// (and the canvas the engine mounts in it in Phase 2) alive across navigation.
+---
+
+<div id="world" transition:persist="world" aria-hidden="true"></div>
+
+<style>
+  #world {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    contain: strict;
+  }
+</style>
