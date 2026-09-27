@@ -1,0 +1,100 @@
+// The world must be visible on every tier in both themes. A regression that
+// shipped: on the high tier (WebGPU) in the light theme, the particles' bloom
+// glow output replaced their colour output whenever the bloom pass wasn't
+// drawing, so the world was invisible while Stats said everything was fine.
+// These tests look at the pixels: each tier renders the Data formation (no
+// signals, so nothing reaches it through the glow path) and the test counts
+// pixels that clearly differ from the background.
+import { expect, test, type Page } from '@playwright/test';
+import sharp from 'sharp';
+
+test.skip(({ isMobile }) => isMobile, 'world tests run on the desktop project');
+
+const GROUND = { dark: [0x1a, 0x1d, 0x23], light: [0xee, 0xf0, 0xf2] } as const;
+/** Share of the world's area that must show particles; the broken tier measured about 0. */
+const MIN_VISIBLE = 0.004;
+
+/** Share of pixels in the world's region that differ clearly from the page background. */
+async function visibleShare(page: Page, theme: 'dark' | 'light'): Promise<number> {
+  const { width = 1440, height = 900 } = page.viewportSize() ?? {};
+  // Wide screens compose the world into the band right of the text column (REGION in world.ts).
+  const png = await page.screenshot({
+    clip: { x: Math.round(width * 0.5), y: 0, width: Math.round(width * 0.46), height },
+  });
+  const { data, info } = await sharp(png).raw().toBuffer({ resolveWithObject: true });
+  const g = GROUND[theme];
+  let visible = 0;
+  for (let i = 0; i < data.length; i += info.channels) {
+    const d =
+      Math.abs((data[i] ?? 0) - g[0]) +
+      Math.abs((data[i + 1] ?? 0) - g[1]) +
+      Math.abs((data[i + 2] ?? 0) - g[2]);
+    if (d > 45) visible++;
+  }
+  return visible / (info.width * info.height);
+}
+
+async function open(page: Page, tier: string, theme: 'dark' | 'light') {
+  await page.addInitScript((t) => {
+    sessionStorage.setItem('intro:seen', '1');
+    localStorage.setItem('pref:theme', t);
+  }, theme);
+  // 4,096 particles keep software rendering fast; the render path is the tier's own.
+  await page.goto(`/dev/world/?tier=${tier}&particles=4096`);
+  await expect(page.locator('html')).toHaveAttribute('data-world-ready', 'true', { timeout: 60_000 });
+  // Only the world: hide the page's text so it can't count as particles.
+  await page.addStyleTag({
+    content:
+      'header, main, footer, .skip-link, #world-caption, .world-labels { visibility: hidden !important; }',
+  });
+}
+
+/** The theme toggle, clicked through the DOM: the header is hidden while measuring. */
+const toggleTheme = (page: Page) =>
+  page.evaluate(() => document.querySelector<HTMLButtonElement>('[data-action="theme"]')?.click());
+
+/** Waits for a few frames to be drawn, then measures. */
+async function settleAndMeasure(page: Page, theme: 'dark' | 'light') {
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        let n = 0;
+        const tick = () => (++n >= 6 ? resolve() : requestAnimationFrame(tick));
+        requestAnimationFrame(tick);
+      }),
+  );
+  await page.waitForTimeout(1500);
+  return visibleShare(page, theme);
+}
+
+for (const tier of ['high', 'medium', 'low'] as const) {
+  test(`the ${tier} tier draws visible particles in the light theme, at load and after switching themes`, async ({
+    page,
+  }) => {
+    test.slow();
+    await open(page, tier, 'light');
+    const atLoad = await settleAndMeasure(page, 'light');
+    // A tier that fails on its first frames steps down; read what actually ran.
+    const ran = await page.locator('html').getAttribute('data-world-tier');
+    test.skip(ran !== tier, `this browser can't run the ${tier} tier here (it ran as ${ran})`);
+    test.info().annotations.push({ type: 'tier', description: `${tier} ran as ${ran}` });
+
+    expect(atLoad, `light theme at load: ${(atLoad * 100).toFixed(2)}% visible`).toBeGreaterThan(MIN_VISIBLE);
+
+    // Switching themes while running takes the other path through the render code.
+    await toggleTheme(page);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    const dark = await settleAndMeasure(page, 'dark');
+    expect(dark, `dark theme: ${(dark * 100).toFixed(2)}% visible`).toBeGreaterThan(MIN_VISIBLE);
+
+    await toggleTheme(page);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    const back = await settleAndMeasure(page, 'light');
+    expect(back, `light theme after switching: ${(back * 100).toFixed(2)}% visible`).toBeGreaterThan(
+      MIN_VISIBLE,
+    );
+
+    // The light theme must read at least as well as the dark one.
+    expect(back).toBeGreaterThan(dark * 0.9);
+  });
+}
