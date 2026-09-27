@@ -1,0 +1,18 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Base from '../../../layouts/Base.astro';
+import ProjectList from '../../../components/ProjectList.astro';
+import { AREA_LABEL } from '../../../lib/projects';
+import { AREAS, type Area } from '../../../lib/schemas';
+
+export const getStaticPaths = (() => AREAS.map((area) => ({ params: { area } }))) satisfies GetStaticPaths;
+const area = Astro.params.area as Area;
+---
+
+<Base
+  title={`${AREA_LABEL[area]} projects`}
+  description={`${AREA_LABEL[area]} projects, each with its measured outcome.`}
+  formation={area}
+>
+  <ProjectList area={area} />
+</Base>

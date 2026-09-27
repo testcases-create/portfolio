@@ -1,0 +1,57 @@
+---
+// One measured number. The measurement note is always visible, directly under
+// the number, never in a tooltip (design principle 3). Renders inside a <dl>.
+import Edit from './Edit.astro';
+
+interface Props {
+  metric: { label: string; value: string; baseline?: string | undefined; measuredBy: string };
+  size?: 'large' | 'small';
+}
+const { metric, size = 'large' } = Astro.props;
+---
+
+<div class:list={['metric', size]}>
+  <dt class="metric-label">
+    <Edit text={metric.label} />
+  </dt>
+  <dd class="metric-value">
+    <Edit text={metric.value} />
+  </dd>
+  {metric.baseline && (
+    <dd class="metric-baseline small muted">
+      {'Baseline: '}
+      <Edit text={metric.baseline} />
+    </dd>
+  )}
+  <dd class="metric-method small muted">
+    <Edit text={metric.measuredBy} />
+  </dd>
+</div>
+
+<style>
+  .metric {
+    display: grid;
+    align-content: start;
+    gap: var(--space-1);
+  }
+
+  dd {
+    margin: 0;
+  }
+
+  .metric-label {
+    font-size: var(--step-small);
+  }
+
+  .metric-value {
+    font-size: var(--step-metric);
+    line-height: 1.05;
+    font-variation-settings: 'wdth' 112;
+    font-variant-numeric: tabular-nums;
+    font-weight: 560;
+  }
+
+  .small .metric-value {
+    font-size: var(--step-sub);
+  }
+</style>

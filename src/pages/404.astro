@@ -1,11 +1,57 @@
 ---
 import Base from '../layouts/Base.astro';
+import { allProjects } from '../lib/projects';
+import Edit from '../components/Edit.astro';
+
+const projects = (await allProjects()).slice(0, 4);
 ---
 
-<Base title="Page not found" description="This page does not exist." formation="data">
-  <h1>That page does not exist</h1>
-  <p class="prose">
-    The link may be out of date. The <a href="/projects/">work index</a> lists every project, and the{' '}
-    <a href="/">home page</a> has contact details.
-  </p>
+<Base title="Page not found" description="This page does not exist." formation="data" noindex>
+  <h1>That page doesn't exist</h1>
+  <p class="prose lead">The link may be out of date. These are good places to start instead.</p>
+  <ul class="links">
+    <li>
+      <a href="/">Home</a>
+    </li>
+    <li>
+      <a href="/projects/">All projects</a>
+    </li>
+    <li>
+      <a href="/contact/">Contact</a>
+    </li>
+  </ul>
+  <h2>Recent work</h2>
+  <ul class="links">
+    {projects.map((p) => (
+      <li>
+        <a href={`/projects/${p.id}/`}>
+          <Edit text={p.data.title} />
+        </a>
+      </li>
+    ))}
+  </ul>
 </Base>
+
+<style>
+  .lead {
+    margin-top: var(--space-4);
+  }
+
+  h2 {
+    margin-top: var(--space-7);
+    font-size: var(--step-sub);
+  }
+
+  .links {
+    display: grid;
+    gap: var(--space-2);
+    margin: var(--space-4) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .links a {
+    display: inline-block;
+    padding-block: var(--space-1);
+  }
+</style>

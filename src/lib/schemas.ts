@@ -82,10 +82,41 @@ export const media = <T extends z.ZodType>(image: T) =>
       message: 'a frame needs either src or a placeholder caption',
     });
 
+export const CODE_LANGS = ['ts', 'tsx', 'js', 'py', 'go', 'sql', 'yaml', 'bash', 'rust', 'java'] as const;
+export const MAX_SNIPPET_LINES = 25;
+
+/** A code highlight: at most 25 lines, with why it matters. */
+export const snippet = z.object({
+  title: z.string(),
+  lang: z.enum(CODE_LANGS),
+  code: z
+    .string()
+    .refine(
+      (c) => c.trimEnd().split('\n').length <= MAX_SNIPPET_LINES,
+      `a snippet is at most ${MAX_SNIPPET_LINES} lines`,
+    ),
+  why: z.string().min(20),
+});
+
+/**
+ * The deep dive's prose sections, in page order. Each is an h2 in the
+ * project's Markdown; the template places components between them.
+ */
+export const PROJECT_SECTIONS = [
+  { id: 'context-and-constraints', heading: 'Context and constraints' },
+  { id: 'architecture', heading: 'Architecture' },
+  { id: 'evaluation', heading: 'Evaluation' },
+  { id: 'deployment-and-operations', heading: 'Deployment and operations' },
+  { id: 'results', heading: 'Results' },
+  { id: 'what-id-do-next', heading: "What I'd do next" },
+] as const;
+
 export const projectSchema = <T extends z.ZodType>(image: T) =>
   z.object({
     title: z.string(), // an outcome, not a name
     slug: z.string().regex(/^[a-z0-9-]+$/),
+    /** Short label for navigation, skill evidence and slides. */
+    name: z.string().max(32),
     outcomeHeadline: z.string(),
     summary: z.string().max(280),
     areas: z.array(area).min(1),
@@ -101,6 +132,9 @@ export const projectSchema = <T extends z.ZodType>(image: T) =>
     order: z.number().int(),
     cover: media(image),
     decisions: z.array(decision).min(1).max(5),
+    /** The TL;DR's problem line: one or two sentences a recruiter can read in five seconds. */
+    problem: z.string().max(240),
+    code: z.array(snippet).min(1).max(2),
   });
 
 const month = z.string().regex(/^\d{4}-\d{2}$/, 'use YYYY-MM');
@@ -139,6 +173,8 @@ export const siteSchema = z.object({
     blog: z.string().optional(),
   }),
   impact: z.array(z.string()).min(3).max(4),
+  /** About page: a short first-person story, one paragraph per entry. */
+  about: z.array(z.string()).min(1).max(5),
   skills: z.object({
     sde: z.array(skill),
     llm: z.array(skill),

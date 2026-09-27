@@ -2,7 +2,8 @@
 // declares what it wants on <body>; the world mirrors its state onto <html>.
 export const FORMATIONS = ['data', 'ml', 'llm', 'sde', 'converge', 'graph'] as const;
 export type Formation = (typeof FORMATIONS)[number];
-export const MODES = ['full', 'band'] as const;
+/** full: behind the page; band: a header band (project pages); off: hidden (presentation mode). */
+export const MODES = ['full', 'band', 'off'] as const;
 export type Mode = (typeof MODES)[number];
 
 export interface WorldConfig {

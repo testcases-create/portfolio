@@ -19,6 +19,16 @@ describe('segments', () => {
   });
 });
 
+it('keeps punctuation against the badge', () => {
+  expect(segments('Computer Science [EDIT], Institution [EDIT].')).toEqual([
+    { kind: 'text', value: 'Computer Science' },
+    { kind: 'edit' },
+    { kind: 'text', value: ', Institution' },
+    { kind: 'edit' },
+    { kind: 'text', value: '.' },
+  ]);
+});
+
 describe('strip', () => {
   it('removes tags for attributes and URLs', () => {
     expect(strip('https://github.com/example [EDIT]')).toBe('https://github.com/example');

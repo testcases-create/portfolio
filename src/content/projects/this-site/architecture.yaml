@@ -1,0 +1,16 @@
+nodes:
+  - { id: visitor, label: Browser, kind: client }
+  - { id: pages, label: Static pages (Astro), kind: service }
+  - { id: boot, label: Boot code (poster check), kind: gateway }
+  - { id: engine, label: World engine, kind: service }
+  - { id: kernel, label: Compute kernel (WebGPU or WebGL2), kind: model }
+  - { id: poster, label: Poster stills, kind: store }
+edges:
+  - { from: visitor, to: pages }
+  - { from: pages, to: boot }
+  - { from: boot, to: engine, label: GPU available }
+  - { from: boot, to: poster, label: no usable GPU }
+  - { from: engine, to: kernel }
+flows:
+  - { name: Full world, path: [visitor, pages, boot, engine, kernel] }
+  - { name: Poster, path: [visitor, pages, boot, poster] }

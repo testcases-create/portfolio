@@ -1,83 +1,468 @@
 ---
-// Phase 1 stub of the deep dive: proves the content pipeline end to end
-// (frontmatter, architecture reference, media frame, prose). Phase 3 builds the page.
+// The project deep dive (BRIEF.md section 5): a TL;DR that stands alone for a
+// 30-second reader, then context, architecture, decisions, evaluation,
+// operations, results, code and next steps for everyone else.
 import type { GetStaticPaths } from 'astro';
-import { getCollection, getEntry, render } from 'astro:content';
+import { Code } from 'astro:components';
+import { getEntry, render } from 'astro:content';
 import Base from '../../../layouts/Base.astro';
+import AreaTag from '../../../components/AreaTag.astro';
+import ArchitectureDiagram from '../../../components/ArchitectureDiagram.astro';
+import Decision from '../../../components/Decision.astro';
 import Edit from '../../../components/Edit.astro';
 import MediaFrame from '../../../components/MediaFrame.astro';
-import EditProse from '../../../components/EditProse.astro';
+import Metric from '../../../components/Metric.astro';
+import ProjectBody from '../../../components/ProjectBody.astro';
+import { allProjects, primaryArea } from '../../../lib/projects';
+import { strip } from '../../../lib/placeholders';
+import { PROJECT_SECTIONS } from '../../../lib/schemas';
+import { site } from '../../../lib/site';
 
 export const getStaticPaths = (async () => {
-  const projects = await getCollection('projects');
-  return projects.map((project) => ({ params: { slug: project.id }, props: { project } }));
+  const projects = await allProjects();
+  return projects.map((project, i) => ({
+    params: { slug: project.id },
+    props: { project, next: projects[(i + 1) % projects.length] ?? project },
+  }));
 }) satisfies GetStaticPaths;
 
-const { project } = Astro.props;
+const { project, next } = Astro.props;
 const { data } = project;
 const arch = await getEntry(data.architecture);
 const { Content } = await render(project);
+const heading = (id: string) => PROJECT_SECTIONS.find((s) => s.id === id)?.heading ?? id;
+const sections = [
+  { id: 'context-and-constraints', heading: heading('context-and-constraints') },
+  { id: 'architecture', heading: heading('architecture') },
+  { id: 'decisions', heading: 'Engineering decisions' },
+  { id: 'evaluation', heading: heading('evaluation') },
+  { id: 'deployment-and-operations', heading: heading('deployment-and-operations') },
+  { id: 'results', heading: heading('results') },
+  { id: 'code-highlight', heading: data.code.length > 1 ? 'Code highlights' : 'Code highlight' },
+  { id: 'what-id-do-next', heading: heading('what-id-do-next') },
+];
+const links = Object.entries(data.links).filter(([, v]) => v) as [string, string][];
+const linkLabel: Record<string, string> = { repo: 'Code', demo: 'Demo', video: 'Video', paper: 'Write-up' };
 ---
 
-<Base title={data.title} description={data.summary} formation={data.areas[0] ?? 'data'} mode="band">
-  <article>
-    <h1>
-      <Edit text={data.title} />
-    </h1>
-    <p class="prose lead">
-      <Edit text={data.summary} />
-    </p>
-    <dl class="metrics">
-      {data.metrics.map((m) => (
-        <div>
-          <dt>
-            <Edit text={m.label} />
-          </dt>
-          <dd class="figure">
-            <Edit text={m.value} />
-          </dd>
-          <dd class="small muted">
-            <Edit text={m.measuredBy} />
+<Base
+  title={strip(data.title)}
+  description={data.summary}
+  formation={primaryArea(project)}
+  mode="band"
+  ogImage={`/og/${project.id}.png`}
+>
+  <article class="deep-dive" data-view="full">
+    <header class="page-head">
+      <h1>
+        <Edit text={data.title} />
+      </h1>
+      <p class="lead">
+        <Edit text={data.outcomeHeadline} />
+      </p>
+      <p class="tags">
+        {data.areas.map((a) => (
+          <AreaTag area={a} />
+        ))}
+        {data.confidential && (
+          <span class="small muted">Confidential: described in general terms, without client details</span>
+        )}
+      </p>
+    </header>
+
+    <section class="tldr" aria-labelledby="tldr-h">
+      <h2 id="tldr-h" class="visually-hidden">
+        Summary
+      </h2>
+      <dl class="facts">
+        <div class="wide">
+          <dt>Problem</dt>
+          <dd>
+            <Edit text={data.problem} />
           </dd>
         </div>
-      ))}
-    </dl>
-    <MediaFrame media={data.cover} />
-    <p class="small muted">
-      Architecture: {arch.data.nodes.length} components and {arch.data.flows.length} request flows.
-    </p>
-    <div class="prose body">
-      <EditProse>
-        <Content />
-      </EditProse>
+        <div>
+          <dt>My role</dt>
+          <dd>
+            <Edit text={data.role} />
+          </dd>
+        </div>
+        <div>
+          <dt>Team</dt>
+          <dd>
+            <Edit text={data.team} />
+          </dd>
+        </div>
+        <div>
+          <dt>Timeline</dt>
+          <dd>
+            <Edit text={data.timeline} />
+          </dd>
+        </div>
+        <div class="wide">
+          <dt>Stack</dt>
+          <dd>{data.stack.join(', ')}</dd>
+        </div>
+      </dl>
+      <dl class="metrics">
+        {data.metrics.map((m) => (
+          <Metric metric={m} />
+        ))}
+      </dl>
+      <div class="tldr-foot">
+        <ul class="links">
+          {links.map(([k, v]) => (
+            <li>
+              <a href={strip(v)}>{linkLabel[k] ?? k}</a>
+            </li>
+          ))}
+          <li>
+            <a href={`/projects/${project.id}/present/`}>Present this project</a>
+          </li>
+        </ul>
+        <div class="view-toggle" role="group" aria-label="Reading depth" hidden>
+          <button type="button" class="button" data-view-choice="skim" aria-pressed="false">
+            Skim
+          </button>
+          <button type="button" class="button" data-view-choice="full" aria-pressed="true">
+            Full
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <div class="doc">
+      <nav class="toc toc-wide" aria-label="On this page">
+        <p class="small muted">On this page</p>
+        <ol>
+          {sections.map((s) => (
+            <li>
+              <a href={`#${s.id}`}>{s.heading}</a>
+            </li>
+          ))}
+        </ol>
+        <div class="progress" aria-hidden="true"></div>
+      </nav>
+      <div class="doc-main">
+        <details class="toc-narrow">
+          <summary>On this page</summary>
+          <nav aria-label="On this page, collapsible">
+            <ol>
+              {sections.map((s) => (
+                <li>
+                  <a href={`#${s.id}`}>{s.heading}</a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        </details>
+        <MediaFrame media={data.cover} widths={[640, 1280]} sizes="(min-width: 900px) 44rem, 100vw" />
+        <ProjectBody sections={sections}>
+          <Content />
+          <ArchitectureDiagram slot="architecture" arch={arch.data} title={strip(data.name)} />
+          <div slot="decisions" class="decisions">
+            {data.decisions.map((d, i) => (
+              <Decision decision={d} open={i === 0} />
+            ))}
+          </div>
+          <div slot="code" class="code">
+            {data.code.map((c) => (
+              <figure class="snippet">
+                <figcaption>
+                  <p class="snippet-title">{c.title}</p>
+                  <p class="prose">
+                    <Edit text={c.why} />
+                  </p>
+                </figcaption>
+                <Code
+                  code={c.code.trimEnd()}
+                  lang={c.lang}
+                  themes={{ dark: 'github-dark-default', light: 'github-light-default' }}
+                  defaultColor="dark"
+                />
+              </figure>
+            ))}
+          </div>
+        </ProjectBody>
+
+        <nav class="next" aria-label="Next project">
+          <p class="small muted">Next project</p>
+          <a href={`/projects/${next.id}/`} data-area={primaryArea(next)}>
+            <Edit text={next.data.title} />
+          </a>
+        </nav>
+        <section class="cta" aria-labelledby="cta-h">
+          <h2 id="cta-h">Talk about this project</h2>
+          <p class="prose">I'm happy to walk through any decision here in more depth.</p>
+          <p>
+            <a class="button" data-primary href={`mailto:${strip(site.links.email)}`}>
+              {strip(site.links.email)}
+            </a>
+          </p>
+        </section>
+      </div>
     </div>
   </article>
 </Base>
 
+<script>
+  import '../../../scripts/deep-dive';
+</script>
+
 <style>
-  article {
-    display: grid;
-    gap: var(--space-5);
+  .page-head {
     max-width: 52rem;
+  }
+
+  h1 {
+    font-size: var(--step-title);
+  }
+
+  .lead {
+    margin-top: var(--space-3);
+    font-size: var(--step-lead);
+    line-height: 1.4;
+    color: var(--muted);
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    margin-top: var(--space-4);
+  }
+
+  .tldr {
+    margin-top: var(--space-6);
+    padding: var(--space-5);
+    background: var(--raised);
+    display: grid;
+    gap: var(--space-6);
+    max-width: 64rem;
+  }
+
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4) var(--space-5);
+    margin: 0;
+  }
+
+  .facts .wide {
+    grid-column: 1 / -1;
+  }
+
+  .facts dt {
+    font-size: var(--step-small);
+    color: var(--muted);
+  }
+
+  .facts dd {
+    margin: var(--space-1) 0 0;
   }
 
   .metrics {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
     gap: var(--space-5);
     margin: 0;
-    padding: var(--space-5);
-    background: var(--raised);
   }
 
-  dd {
+  .tldr-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
     margin: 0;
+    padding: 0;
+    list-style: none;
   }
 
-  .figure {
-    font-size: var(--step-metric);
-    line-height: 1;
-    font-variation-settings: 'wdth' 112;
-    font-variant-numeric: tabular-nums;
+  .links a {
+    display: inline-block;
+    padding-block: var(--space-1);
+  }
+
+  .view-toggle {
+    display: flex;
+    gap: var(--space-1);
+  }
+
+  .view-toggle[hidden] {
+    display: none;
+  }
+
+  .view-toggle [aria-pressed='true'] {
+    background: var(--text);
+    color: var(--ground);
+    border-color: var(--text);
+  }
+
+  .doc {
+    display: grid;
+    grid-template-columns: 13rem minmax(0, 46rem);
+    gap: var(--space-7);
+    margin-top: var(--space-7);
+  }
+
+  .toc-wide {
+    position: sticky;
+    top: var(--space-5);
+    align-self: start;
+  }
+
+  .toc ol,
+  .toc-narrow ol {
+    margin: var(--space-2) 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  .toc a,
+  .toc-narrow a {
+    display: inline-block;
+    padding-block: var(--space-1);
+    font-size: var(--step-small);
+    text-decoration: none;
+  }
+
+  .toc a:hover,
+  .toc a[aria-current='location'] {
+    text-decoration: underline;
+  }
+
+  .toc-narrow {
+    display: none;
+    margin-bottom: var(--space-5);
+  }
+
+  .toc-narrow summary {
+    cursor: pointer;
+    padding-block: var(--space-2);
+  }
+
+  /* Reading progress: a scroll-driven animation, no JavaScript. */
+  .progress {
+    display: none;
+    height: 2px;
+    margin-top: var(--space-4);
+    background: var(--line);
+    transform-origin: left;
+  }
+
+  @supports (animation-timeline: scroll()) {
+    .progress {
+      display: block;
+      background: var(--text);
+      animation: progress linear both;
+      animation-timeline: scroll(root);
+    }
+  }
+
+  @keyframes progress {
+    from {
+      transform: scaleX(0);
+    }
+
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  .decisions {
+    display: grid;
+  }
+
+  .code {
+    display: grid;
+    gap: var(--space-6);
+  }
+
+  .snippet {
+    margin: 0;
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .snippet-title {
+    font-weight: 560;
+  }
+
+  .snippet :global(pre) {
+    margin: 0;
+    padding: var(--space-4);
+    overflow-x: auto;
+    font-size: 0.8125rem;
+    line-height: 1.55;
+  }
+
+  .next {
+    margin-top: var(--space-7);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--line);
+  }
+
+  .next a {
+    display: inline-block;
+    margin-top: var(--space-1);
+    font-size: var(--step-sub);
+    font-weight: 560;
+    line-height: 1.25;
+  }
+
+  .cta {
+    margin-top: var(--space-7);
+  }
+
+  .cta h2 {
+    font-size: var(--step-sub);
+    margin-bottom: var(--space-3);
+  }
+
+  .cta .prose {
+    margin-bottom: var(--space-4);
+  }
+
+  /* Skim: the TL;DR, each section's first paragraph, and the decisions' questions. */
+  .deep-dive[data-view='skim'] :global(.section-body > :not(:first-child)),
+  .deep-dive[data-view='skim'] :global(#code-highlight),
+  .deep-dive[data-view='skim'] :global(.diagram figcaption) {
+    display: none;
+  }
+
+  @media (max-width: 899px) {
+    .facts {
+      grid-template-columns: 1fr;
+    }
+
+    .doc {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .toc-wide {
+      display: none;
+    }
+
+    .toc-narrow {
+      display: block;
+    }
+  }
+
+  @media print {
+    .toc-wide,
+    .toc-narrow,
+    .view-toggle,
+    .cta {
+      display: none !important;
+    }
   }
 </style>

@@ -1,12 +1,17 @@
 nodes:
-  - { id: client, label: Client apps, kind: client }
+  - { id: client, label: Product services, kind: client }
   - { id: gateway, label: Inference gateway, kind: gateway }
-  - { id: cache, label: Response cache, kind: cache }
-  - { id: model, label: Model servers, kind: model }
+  - { id: limits, label: Rate limits (Redis), kind: store }
+  - { id: cache, label: Response cache (Redis), kind: cache }
+  - { id: batcher, label: Batcher, kind: service }
+  - { id: model, label: Triton model servers, kind: model }
 edges:
   - { from: client, to: gateway, label: gRPC }
+  - { from: gateway, to: limits }
   - { from: gateway, to: cache }
-  - { from: gateway, to: model, label: batched }
+  - { from: gateway, to: batcher }
+  - { from: batcher, to: model, label: batched }
 flows:
   - { name: Cache hit, path: [client, gateway, cache] }
-  - { name: Cache miss, path: [client, gateway, model] }
+  - { name: Cache miss, path: [client, gateway, batcher, model] }
+  - { name: Rate check, path: [client, gateway, limits] }

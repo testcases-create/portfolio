@@ -1,0 +1,24 @@
+---
+// Role lenses: Home tailored to one role, sent with applications. They stay out
+// of the navigation, and their canonical URL is Home.
+import type { GetStaticPaths } from 'astro';
+import Base from '../../layouts/Base.astro';
+import HomeContent from '../../components/HomeContent.astro';
+import { AREAS, type Area } from '../../lib/schemas';
+import { AREA_LABEL } from '../../lib/projects';
+import { site } from '../../lib/site';
+import { strip } from '../../lib/placeholders';
+
+export const getStaticPaths = (() => AREAS.map((role) => ({ params: { role } }))) satisfies GetStaticPaths;
+const role = Astro.params.role as Area;
+---
+
+<Base
+  title={`${strip(site.name)}, ${AREA_LABEL[role]}`}
+  description={site.roleLines[role]}
+  formation={role}
+  canonicalPath="/"
+  ogImage="/og/home.png"
+>
+  <HomeContent lens={role} />
+</Base>

@@ -72,7 +72,7 @@ test('the canvas survives client-side navigation, and project pages get a band',
   await page.evaluate(() => Object.assign(document.querySelector('#world canvas') ?? {}, { marker: 42 }));
 
   await page.getByRole('link', { name: 'Work' }).click();
-  await page.locator('main a[href="/projects/inference-gateway/"]').click();
+  await page.locator('main a[href="/projects/inference-gateway/"]').first().click();
   await expect(html(page)).toHaveAttribute('data-world-mode', 'band');
   const marker = await page.evaluate(
     () =>

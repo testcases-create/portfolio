@@ -1,7 +1,20 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
-const pages = ['/', '/projects/', '/projects/inference-gateway/', '/404'];
+const pages = [
+  '/',
+  '/for/llm/',
+  '/projects/',
+  '/projects/area/ml/',
+  '/projects/inference-gateway/',
+  '/projects/predictive-maintenance/',
+  '/projects/support-agent/present/',
+  '/experience/',
+  '/about/',
+  '/resume/',
+  '/contact/',
+  '/404',
+];
 
 // These tests cover the page, not the graphics (world.spec.ts does): show the
 // poster so they stay fast and deterministic.
@@ -37,7 +50,7 @@ test('the world slot persists across client-side navigation', async ({ page }) =
 
   await page.getByRole('link', { name: 'Work' }).click();
   await expect(page).toHaveURL(/\/projects\/$/);
-  await page.locator('main a[href="/projects/inference-gateway/"]').click();
+  await page.locator('main a[href="/projects/inference-gateway/"]').first().click();
   await expect(page.locator('html')).toHaveAttribute('data-world-mode', 'band');
   await expect(page.locator('html')).toHaveAttribute('data-world-formation', 'sde');
 

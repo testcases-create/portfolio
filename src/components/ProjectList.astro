@@ -1,0 +1,71 @@
+---
+// All projects, or one area's. The filter is a set of links to static pages,
+// so it works without JavaScript; the client router makes it instant with it.
+import ProjectRow from './ProjectRow.astro';
+import { AREA_LABEL, allProjects } from '../lib/projects';
+import type { Area } from '../lib/schemas';
+
+interface Props {
+  area?: Area | undefined;
+}
+const { area } = Astro.props;
+const projects = (await allProjects()).filter((p) => !area || p.data.areas.includes(area));
+const filters: { href: string; label: string; area?: Area }[] = [
+  { href: '/projects/', label: 'All' },
+  { href: '/projects/area/sde/', label: AREA_LABEL.sde, area: 'sde' },
+  { href: '/projects/area/llm/', label: AREA_LABEL.llm, area: 'llm' },
+  { href: '/projects/area/ml/', label: AREA_LABEL.ml, area: 'ml' },
+];
+---
+
+<h1>{area ? `${AREA_LABEL[area]} projects` : 'Work'}</h1>
+<p class="prose intro">
+  Each project leads with its outcome and says how it was measured. {projects.length}
+  {projects.length === 1 ? ' project' : ' projects'}.
+</p>
+<nav class="filters" aria-label="Filter projects by area">
+  <ul>
+    {filters.map((f) => (
+      <li>
+        <a
+          class="button"
+          href={f.href}
+          aria-current={f.area === area ? 'page' : undefined}
+          data-area={f.area}
+        >
+          {f.label}
+        </a>
+      </li>
+    ))}
+  </ul>
+</nav>
+<div class="list">
+  {projects.map((p) => (
+    <ProjectRow project={p} headingLevel="h2" />
+  ))}
+</div>
+
+<style>
+  .intro {
+    margin-top: var(--space-3);
+  }
+
+  .filters ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: var(--space-5) 0 var(--space-4);
+    padding: 0;
+    list-style: none;
+  }
+
+  .filters a[aria-current='page'] {
+    background: var(--text);
+    color: var(--ground);
+    border-color: var(--text);
+  }
+
+  .list {
+    max-width: 52rem;
+  }
+</style>

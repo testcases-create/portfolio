@@ -151,6 +151,11 @@ function startGraphics(): void {
     root.dataset.worldReady = 'true';
     return;
   }
+  // Presentation mode hides the world: wait for the first page that shows it.
+  if (readConfig(document.body.dataset).mode === 'off') {
+    document.addEventListener('astro:after-swap', startGraphics, { once: true });
+    return;
+  }
   void import('../graphics/world-entry').then(({ startWorld }) => startWorld());
 }
 

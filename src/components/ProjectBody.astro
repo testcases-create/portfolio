@@ -1,0 +1,74 @@
+---
+// The deep dive's sections in brief order, with components between the prose:
+// the diagram after the architecture text, decisions after architecture, and
+// code after results. Placeholder tags in the prose become badges.
+import { EDIT_TAG } from '../lib/placeholders';
+import { splitSections } from '../lib/sections';
+
+interface Props {
+  sections: { id: string; heading: string }[];
+}
+const { sections } = Astro.props;
+const html = await Astro.slots.render('default');
+const bodies = splitSections(html);
+const badge =
+  '<span class="edit-badge" title="Placeholder: replace before launch (CONTENT_GUIDE.md)">EDIT</span>';
+const withBadges = (s: string) => s.replaceAll(` ${EDIT_TAG}`, EDIT_TAG).replaceAll(EDIT_TAG, badge);
+const slotted = {
+  architecture: Astro.slots.has('architecture') ? await Astro.slots.render('architecture') : '',
+  decisions: Astro.slots.has('decisions') ? await Astro.slots.render('decisions') : '',
+  code: Astro.slots.has('code') ? await Astro.slots.render('code') : '',
+};
+---
+
+{sections.map((s) => (
+  <section id={s.id} class="doc-section" aria-labelledby={`${s.id}-h`}>
+    <h2 id={`${s.id}-h`}>{s.heading}</h2>
+    {s.id === 'decisions' || s.id === 'code-highlight' ? (
+      <Fragment set:html={s.id === 'decisions' ? slotted.decisions : slotted.code} />
+    ) : (
+      <div class="section-body prose">
+        <Fragment set:html={withBadges(bodies.get(s.id) ?? '')} />
+      </div>
+    )}
+    {s.id === 'architecture' && <Fragment set:html={slotted.architecture} />}
+  </section>
+))}
+
+<style>
+  .doc-section {
+    scroll-margin-top: var(--space-6);
+    padding-block: var(--space-6);
+  }
+
+  .doc-section > h2 {
+    font-size: var(--step-section);
+    margin-bottom: var(--space-4);
+  }
+
+  .section-body :global(p + p),
+  .section-body :global(p + table),
+  .section-body :global(table + p) {
+    margin-top: var(--space-4);
+  }
+
+  .section-body :global(table) {
+    width: 100%;
+    max-width: 44rem;
+    border-collapse: collapse;
+    font-family: var(--face-sans);
+    font-size: var(--step-small);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .section-body :global(th),
+  .section-body :global(td) {
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+  }
+
+  .section-body :global(th) {
+    font-weight: 560;
+  }
+</style>

@@ -1,0 +1,130 @@
+---
+// A project as a row, not a card: outcome, summary, areas, one metric and links.
+import AreaTag from './AreaTag.astro';
+import Edit from './Edit.astro';
+import MediaFrame from './MediaFrame.astro';
+import Metric from './Metric.astro';
+import { primaryArea, type Project } from '../lib/projects';
+import { strip } from '../lib/placeholders';
+
+interface Props {
+  project: Project;
+  headingLevel?: 'h2' | 'h3';
+}
+const { project, headingLevel: H = 'h3' } = Astro.props;
+const { data, id } = project;
+const href = `/projects/${id}/`;
+const [metric] = data.metrics;
+---
+
+<article class="project-row">
+  <div class="text">
+    <H class="title">
+      <a href={href} data-area={primaryArea(project)}>
+        <Edit text={data.title} />
+      </a>
+    </H>
+    <p class="summary prose">
+      <Edit text={data.summary} />
+    </p>
+    <p class="tags">
+      {data.areas.map((a) => (
+        <AreaTag area={a} />
+      ))}
+      {data.confidential && <span class="small muted">Confidential: described in general terms</span>}
+    </p>
+    {metric && (
+      <dl class="row-metric">
+        <Metric metric={metric} size="small" />
+      </dl>
+    )}
+    <ul class="links">
+      <li>
+        <a href={href} data-area={primaryArea(project)}>
+          Deep dive<span class="visually-hidden">: {data.name}</span>
+        </a>
+      </li>
+      {data.links.repo && (
+        <li>
+          <a href={strip(data.links.repo)}>
+            Code<span class="visually-hidden">: {data.name}</span>
+          </a>
+        </li>
+      )}
+      {data.links.demo && (
+        <li>
+          <a href={strip(data.links.demo)}>
+            Demo<span class="visually-hidden">: {data.name}</span>
+          </a>
+        </li>
+      )}
+    </ul>
+  </div>
+  <div class="cover">
+    <MediaFrame media={data.cover} widths={[240, 480]} sizes="12rem" />
+  </div>
+</article>
+
+<style>
+  .project-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 11rem;
+    gap: var(--space-5);
+    padding-block: var(--space-6);
+    border-top: 1px solid var(--line);
+  }
+
+  .title {
+    font-size: var(--step-sub);
+    line-height: 1.2;
+    font-variation-settings: 'wdth' 104;
+  }
+
+  .title a {
+    text-decoration: none;
+  }
+
+  .title a:hover {
+    text-decoration: underline;
+  }
+
+  .summary {
+    margin-top: var(--space-3);
+    font-size: 1.0625rem;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    margin-top: var(--space-3);
+  }
+
+  .row-metric {
+    margin: var(--space-4) 0 0;
+  }
+
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    margin: var(--space-4) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .links a {
+    display: inline-block;
+    padding-block: var(--space-1);
+  }
+
+  @media (max-width: 599px) {
+    .project-row {
+      grid-template-columns: 1fr;
+    }
+
+    .cover {
+      display: none;
+    }
+  }
+</style>

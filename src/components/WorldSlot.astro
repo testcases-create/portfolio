@@ -27,6 +27,11 @@
     height: var(--band-total);
   }
 
+  html[data-world-mode='off'] #world,
+  html[data-world-mode='off'] .world-caption {
+    display: none;
+  }
+
   .world-canvas {
     display: block;
     width: 100%;
@@ -42,13 +47,67 @@
     background-image: url('/poster/world-light.webp');
   }
 
+  /* Narrow screens: like the live world, the poster appears only in the windows
+     between blocks of text, never behind them. */
   @media (max-width: 899px), (max-aspect-ratio: 11/10) {
-    html[data-world-tier='poster'] #world {
+    html[data-world-tier='poster'][data-world-mode='full'] #world {
+      background-image: none;
+    }
+
+    /* The still fades in rather than popping in once the tier is known. */
+    html[data-world-tier='poster'] .world-window {
+      position: relative;
+    }
+
+    html[data-world-tier='poster'] .world-window::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url('/poster/world-dark-narrow.webp') center / cover no-repeat;
+      animation: poster-in 0.6s ease-out both;
+    }
+
+    @keyframes poster-in {
+      from {
+        opacity: 0;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html[data-world-tier='poster'] .world-window::before {
+        animation: none;
+      }
+    }
+
+    html[data-world-tier='poster'][data-theme='light'] .world-window::before {
+      background-image: url('/poster/world-light-narrow.webp');
+    }
+
+    /* The hero's window gets a glow in the three role colours instead of the
+       still: an image there becomes the page's largest paint, and the hero text
+       must be the LCP element (BRIEF.md section 5). Gradients never count. */
+    html[data-world-tier='poster'] .hero .world-window::before,
+    html[data-world-tier='poster'][data-theme='light'] .hero .world-window::before {
+      background:
+        radial-gradient(
+          closest-side at 30% 45%,
+          color-mix(in oklab, var(--sde) 40%, transparent),
+          transparent
+        ),
+        radial-gradient(
+          closest-side at 70% 40%,
+          color-mix(in oklab, var(--llm) 32%, transparent),
+          transparent
+        ),
+        radial-gradient(closest-side at 50% 70%, color-mix(in oklab, var(--ml) 36%, transparent), transparent);
+    }
+
+    html[data-world-tier='poster'][data-world-mode='band'] #world {
       background-image: url('/poster/world-dark-narrow.webp');
       background-position: 50% 50%;
     }
 
-    html[data-world-tier='poster'][data-theme='light'] #world {
+    html[data-world-tier='poster'][data-world-mode='band'][data-theme='light'] #world {
       background-image: url('/poster/world-light-narrow.webp');
     }
   }

@@ -1,0 +1,17 @@
+nodes:
+  - { id: slack, label: Slack, kind: client }
+  - { id: service, label: Text-to-SQL service, kind: service }
+  - { id: schema, label: Schema index, kind: store }
+  - { id: llm, label: Language model, kind: model }
+  - { id: validator, label: SQL validator, kind: gateway }
+  - { id: warehouse, label: Warehouse (read-only), kind: store }
+edges:
+  - { from: slack, to: service }
+  - { from: service, to: schema }
+  - { from: service, to: llm }
+  - { from: service, to: validator }
+  - { from: validator, to: warehouse }
+flows:
+  - { name: Find tables, path: [slack, service, schema] }
+  - { name: Write the query, path: [slack, service, llm] }
+  - { name: Run the query, path: [slack, service, validator, warehouse] }

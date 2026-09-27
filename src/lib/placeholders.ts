@@ -5,14 +5,21 @@ export type Segment = { kind: 'text'; value: string } | { kind: 'edit' };
 
 export function segments(text: string): Segment[] {
   const out: Segment[] = [];
-  text.split(EDIT_TAG).forEach((part, i) => {
+  const parts = text.split(EDIT_TAG);
+  parts.forEach((part, i) => {
     if (i > 0) out.push({ kind: 'edit' });
-    const value = i > 0 ? part.replace(/^ /, '') : part.replace(/ $/, '');
+    // Drop the space on either side of a tag; spacing is re-added below.
+    let value = part;
+    if (i > 0) value = value.replace(/^ /, '');
+    if (i < parts.length - 1) value = value.replace(/ $/, '');
     if (value) out.push({ kind: 'text', value });
   });
-  // "a [EDIT] b" keeps one space between the badge and the following word.
+  // "a [EDIT] b" keeps one space between the badge and the following word,
+  // but "a [EDIT], b" keeps the comma against the badge.
   return out.map((s, i) =>
-    s.kind === 'text' && out[i - 1]?.kind === 'edit' ? { ...s, value: ` ${s.value}` } : s,
+    s.kind === 'text' && out[i - 1]?.kind === 'edit' && !/^[,.;:!?)]/.test(s.value)
+      ? { ...s, value: ` ${s.value}` }
+      : s,
   );
 }
 

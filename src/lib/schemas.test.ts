@@ -3,7 +3,15 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'astro/zod';
 import { parse as parseYaml } from 'yaml';
 import raw from '../data/site.json';
-import { architecture, experienceSchema, metric, projectSchema, siteSchema } from './schemas';
+import {
+  PROJECT_SECTIONS,
+  architecture,
+  experienceSchema,
+  metric,
+  projectSchema,
+  siteSchema,
+  snippet,
+} from './schemas';
 
 // Stand-in for Astro's image() helper: a path string.
 const project = projectSchema(z.string());
@@ -46,6 +54,15 @@ describe('architecture', () => {
   });
 });
 
+describe('snippet', () => {
+  it('rejects code longer than 25 lines', () => {
+    const code = Array.from({ length: 26 }, (_, i) => `line ${i}`).join('\n');
+    expect(
+      snippet.safeParse({ title: 't', lang: 'ts', code, why: 'Because it matters a lot here.' }).success,
+    ).toBe(false);
+  });
+});
+
 describe('metric', () => {
   it('requires a measurement note', () => {
     expect(metric.safeParse({ label: 'p95', value: '190 ms', measuredBy: 'k6' }).success).toBe(false);
@@ -60,6 +77,15 @@ describe('seed content', () => {
     const parsed = project.extend({ architecture: z.string() }).parse(data);
     expect(parsed.slug).toBe(dir);
     expect(parsed.architecture).toBe(dir);
+  });
+
+  it.each(dirs)('project %s has the deep-dive sections, in order', (dir) => {
+    const body = readFileSync(`src/content/projects/${dir}/index.md`, 'utf8')
+      .split(/\n---\n/)
+      .slice(1)
+      .join('\n');
+    const headings = [...body.matchAll(/^## (.+)$/gm)].map((m) => m[1]);
+    expect(headings).toEqual(PROJECT_SECTIONS.map((s) => s.heading));
   });
 
   it.each(dirs)('project %s has valid architecture data', (dir) => {
