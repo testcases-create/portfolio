@@ -22,7 +22,9 @@
     "budgets": "node --experimental-strip-types scripts/budgets.ts",
     "capture-poster": "node --experimental-strip-types scripts/capture-poster.ts",
     "og-images": "node --experimental-strip-types scripts/og-images.ts",
-    "resume-pdf": "node --experimental-strip-types scripts/resume-pdf.ts"
+    "resume-pdf": "node --experimental-strip-types scripts/resume-pdf.ts",
+    "sample-attention": "node --experimental-strip-types scripts/sample-attention.ts",
+    "precompute-attention": "python3 scripts/precompute-attention.py"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.3.0",

@@ -71,7 +71,7 @@ test('the canvas survives client-side navigation, and project pages get a band',
   await expect(html(page)).toHaveAttribute('data-world-running', 'true', { timeout: 30_000 });
   await page.evaluate(() => Object.assign(document.querySelector('#world canvas') ?? {}, { marker: 42 }));
 
-  await page.getByRole('link', { name: 'Work' }).click();
+  await page.getByRole('link', { name: 'Work', exact: true }).click();
   await page.locator('main a[href="/projects/inference-gateway/"]').first().click();
   await expect(html(page)).toHaveAttribute('data-world-mode', 'band');
   const marker = await page.evaluate(
@@ -238,6 +238,8 @@ test('the hero intro plays once per session and never hides the headline', async
 
 test('any input skips the intro', async ({ page }) => {
   await page.goto(world('/'));
+  // The intro chunk loads after the page; input can only skip it once it is listening.
+  await expect(html(page)).toHaveAttribute('data-intro-start', /\d/);
   await page.keyboard.press('Shift');
   await expect(html(page)).toHaveAttribute('data-intro-skip', '1');
   await expect(page.locator('#hero-name')).toHaveCSS('opacity', '1');

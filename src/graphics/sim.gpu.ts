@@ -294,6 +294,8 @@ export interface GpuSim {
   vel: StorageBufferNode<'vec4'>;
   col: StorageBufferNode<'vec4'>;
   compute: ComputeNode;
+  /** Formation data (buildFormations). The architecture explorer rewrites one slot of it. */
+  form: GpuSim['pos'];
 }
 
 /**
@@ -372,5 +374,5 @@ export function createGpuSim(
       .assign(vec4(mix(colour(U.neutral), hue, m), vis.mul(U.alpha).mul(sig.mul(SIGNAL_GAIN).add(1))));
   })().compute(n);
 
-  return { pos, vel, col, compute };
+  return { pos, vel, col, compute, form: formBuf };
 }

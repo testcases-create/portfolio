@@ -2,6 +2,7 @@
 // The architecture as a static SVG, laid out at build time from the same data
 // the 3D explorer uses. A text list of components and flows sits beside it.
 import { layout, NODE_H, NODE_W } from '../lib/diagram';
+import ArchitectureExplorer from './ArchitectureExplorer.astro';
 import type { Architecture } from '../lib/schemas';
 
 interface Props {
@@ -92,6 +93,7 @@ const kindLabel: Record<string, string> = {
     </ol>
   </figcaption>
 </figure>
+<ArchitectureExplorer arch={arch} title={title} />
 
 <style>
   .diagram {

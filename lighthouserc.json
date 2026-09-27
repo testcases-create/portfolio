@@ -7,7 +7,8 @@
         "http://localhost/projects/index.html",
         "http://localhost/projects/inference-gateway/index.html",
         "http://localhost/projects/support-agent/present/index.html",
-        "http://localhost/resume/index.html"
+        "http://localhost/resume/index.html",
+        "http://localhost/lab/index.html"
       ],
       "numberOfRuns": 3,
       "settings": {
@@ -69,7 +70,7 @@
           }
         },
         {
-          "matchingUrlPattern": "/projects/",
+          "matchingUrlPattern": "/(projects|lab|resume)/",
           "assertions": {
             "categories:performance": [
               "error",

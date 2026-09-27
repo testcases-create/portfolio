@@ -1,0 +1,113 @@
+---
+// Markup for "Watch attention". The choices are form controls and the token
+// buttons, and the result is a ranked list in plain text, so the demo works
+// without the 3D view; watch-attention.ts fills it in once the data loads.
+---
+
+<div class="demo attention" data-demo="watch-attention" hidden>
+  <div class="demo-view" data-view>
+    <div class="demo-labels token-labels" aria-hidden="true" data-labels></div>
+  </div>
+  <div class="demo-side">
+    <p class="small source" data-source hidden></p>
+    <form class="demo-controls" data-controls>
+      <label class="field">
+        <span>Sentence</span>
+        <select name="sentence"></select>
+      </label>
+      <div class="pair">
+        <label class="field">
+          <span>Layer</span>
+          <select name="layer"></select>
+        </label>
+        <label class="field">
+          <span>Head</span>
+          <select name="head"></select>
+        </label>
+      </div>
+      <fieldset class="field">
+        <legend>Token to follow</legend>
+        <div class="tokens" data-tokens></div>
+      </fieldset>
+      <div class="demo-actions">
+        <button type="button" class="button" data-step>
+          Step through the layers
+        </button>
+      </div>
+    </form>
+    <div>
+      <p class="small muted" data-heading>
+        Where it looks
+      </p>
+      <ol class="top" data-top></ol>
+    </div>
+    <p class="small" data-describe aria-live="polite"></p>
+  </div>
+</div>
+
+<style>
+  .pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+  }
+
+  .tokens {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+
+  .tokens :global(button) {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    padding: 0 0.6em;
+    font: inherit;
+    color: var(--text);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    cursor: pointer;
+  }
+
+  .tokens :global(button[aria-pressed='true']) {
+    border-color: var(--llm);
+    background: color-mix(in oklab, var(--llm) 18%, transparent);
+  }
+
+  .top {
+    display: grid;
+    gap: var(--space-2);
+    margin: var(--space-2) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .top :global(li) {
+    display: grid;
+    grid-template-columns: 7rem 1fr 3.5rem;
+    gap: var(--space-3);
+    align-items: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .top :global(.bar) {
+    height: 0.6rem;
+    background: var(--llm);
+    border-radius: 2px;
+  }
+
+  .top :global(.value) {
+    text-align: end;
+  }
+
+  .source {
+    padding: var(--space-3);
+    border: 1px dashed var(--llm);
+  }
+
+  .token-labels :global(span[data-state='query']) {
+    color: var(--llm-ink);
+    font-weight: 600;
+  }
+</style>

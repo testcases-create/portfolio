@@ -199,3 +199,94 @@ at 1.66 s. _Where:_ `src/components/WorldSlot.astro`.
   everywhere.
 - 110 unit tests and 71 end-to-end tests. axe runs on 12 page types in both
   themes.
+
+## Phase 4: the architecture explorer and the Lab
+
+**The explorer borrows a formation instead of adding one.** "Explore in 3D"
+lays the project's architecture out in 3D and writes it into the particles'
+SDE slots, then morphs the world there. Nodes are boxes of particles, edges
+are faint lines, and packets run along the request flows. The GPU kernel
+needs no new code, because a graph is just another shape made of the same
+kinds of particle. Focusing a node or a flow rewrites that slot again. The
+same random seed gives every particle the same job each time, so only
+brightness and packet routes change. When you close the explorer, the
+original SDE slot is copied back. _Where:_ `src/graphics/graph.ts`,
+`src/graphics/explorer.ts`.
+
+**One data source, two renderings.** The explorer uses the same
+`architecture.yaml` as the static SVG, and the same "longest path" layering,
+so the 3D graph and the diagram always agree. _Where:_ `src/lib/diagram.ts`
+(`columns`), `src/graphics/graph.ts` (`layoutGraph`).
+
+**The dialog is the accessible explorer.** The explorer is a native
+`<dialog>`. Its list of components and flows is rendered at build time, and
+every node and flow is a button. So the keyboard and screen readers get the
+same choices as the mouse, and a status line says what each component
+connects to. The labels floating over the 3D view are hidden from assistive
+technology, because they duplicate the list. On the poster tier the dialog is
+that list alone, and it says why there is no 3D view. _Where:_
+`src/components/ArchitectureExplorer.astro`.
+
+**Train a network: the same maths on the CPU and the GPU.** The network is
+2 → 8 → 8 → 1, trained with gradient descent and momentum. The CPU version
+is the specification. The WebGPU version is two TSL compute kernels per
+step:
+
+1. One invocation per point runs the forward pass and backpropagation, and
+   writes that point's gradient.
+2. One invocation per weight averages its gradient over the points and
+   applies the update.
+
+The loops over layers are unrolled in JavaScript, so the shader is
+straight-line code. A test runs both versions for 40 steps from the same
+start: the weights move by 0.94, and the two agree to within 0.0000002. A
+separate unit test checks the gradient against finite differences.
+_Where:_ `src/lab/train-network/`.
+
+**Watch attention: real data, when it can be fetched.** A Python script runs
+distilgpt2 over five sentences and saves every layer's and head's attention
+at one byte per weight, which is 8.8 KB gzipped. Hugging Face was blocked
+from the build container, so the repo ships clearly labelled sample data
+until the script is run. The page says it is a sample, and the file carries
+an `[EDIT]` tag, so a production build fails until the real data replaces
+it. _Where:_ `scripts/precompute-attention.py`,
+`scripts/sample-attention.ts`.
+
+**Scale a system: a real queueing model.** It is a discrete-event
+simulation, with a priority queue of timed events and Poisson arrivals. It
+models round-robin load balancing, worker pools with bounded queues, a
+cache, an asynchronous write queue, database connections, timeouts and
+health checks. The tests check behaviour you could reason out on paper:
+
+- the number of requests in the system obeys Little's law;
+- one replica collapses above about 200 requests per second, and more
+  replicas recover it;
+- a cache takes load off the database;
+- a crashed replica causes errors only until the health check removes it;
+- no request is ever lost.
+
+_Where:_ `src/lab/scale-system/logic.ts`.
+
+**Poster-tier visitors never download three.js for a demo.** Each demo has
+a small entry module (controls, simulation, read-outs) and a separate scene
+module that brings three.js. The scene loads only when the world's tier
+allows a 3D view. Otherwise the demo runs without it: read-outs, lists and a
+2D field. _Where:_ `src/lab/shared/loop.ts`, `src/lab/shared/stage.ts`.
+
+**Every lazy feature has a measured budget.** The budget script follows each
+feature's chunks from the page and counts only what opening it adds after
+the engine has loaded. _Where:_ `LAZY` in `scripts/budgets.ts`.
+
+**Numbers to quote.**
+
+| Feature         | Measured                    | Budget                     |
+| --------------- | --------------------------- | -------------------------- |
+| Explorer        | 3.7 KB                      | 25 KB                      |
+| Train a network | 7.6 KB                      | 35 KB                      |
+| Watch attention | 5.4 KB, plus 8.8 KB of data | 25 KB, plus 120 KB of data |
+| Scale a system  | 6.9 KB                      | 25 KB                      |
+
+- The engine is 303.9 KB against its 320 KB budget. It grew by 6.3 KB,
+  because three.js classes the Lab uses now sit in the shared three.js chunk.
+- There are 139 unit tests and 93 end-to-end tests, including the GPU
+  training parity check.

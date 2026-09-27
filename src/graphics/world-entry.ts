@@ -12,7 +12,8 @@ import { assembleProgress } from './intro-state';
 import { oneHot, type SimInputs } from './sim.shared';
 import { readTheme } from './theme';
 import { chooseTier, isTier, nextTier, type Tier } from './tiers';
-import { createWorld, type SharedState, type WorldHandle } from './world';
+import { createWorld, type ExploreView, type SharedState, type WorldHandle } from './world';
+import { FORMATION_NAMES } from './formations';
 
 const root = document.documentElement;
 
@@ -55,6 +56,26 @@ async function detectTier(): Promise<Tier> {
 
 let started = false;
 
+/** Hooks the architecture explorer passes in: fill the graph slot, and put it back. */
+export interface ExploreHooks {
+  apply(form: Float32Array, n: number): void;
+  restore(form: Float32Array, n: number): void;
+}
+
+/** The explorer's handle on the running world (src/graphics/explorer.ts). */
+export interface WorldExplorer {
+  enter(hooks: ExploreHooks, view: ExploreView): void;
+  /** The focus or flow changed: rewrite the graph slot. */
+  update(): void;
+  exit(): void;
+  project(p: readonly [number, number, number]): { x: number; y: number } | null;
+  tier(): Tier;
+}
+
+let resolveExplorer: (api: WorldExplorer) => void = () => {};
+/** Resolves once the world has mounted its first tier. */
+export const worldExplorer = new Promise<WorldExplorer>((resolve) => (resolveExplorer = resolve));
+
 export async function startWorld(): Promise<void> {
   if (started) return;
   started = true;
@@ -65,6 +86,8 @@ export async function startWorld(): Promise<void> {
   const initial = oneHot(formationIndex(config.formation));
   const state: SharedState = {
     time: 0,
+    frozen: false,
+    explore: null,
     weights: [...initial],
     targetWeights: [...initial],
     mode: config.mode,
@@ -79,10 +102,24 @@ export async function startWorld(): Promise<void> {
   let running = false;
   let onScreen = true;
   let probeNote = '';
-  let unbindScroll = bindScroll(formationIndex(config.formation), (w) => (state.targetWeights = w));
+  // Scroll sets the formation, except while the explorer holds the world.
+  let scrollWeights = [...initial];
+  const onScroll = (w: number[]) => {
+    scrollWeights = w;
+    if (!state.explore) state.targetWeights = w;
+  };
+  let unbindScroll = bindScroll(formationIndex(config.formation), onScroll);
+  let exploring: ExploreHooks | null = null;
+  let restoreTimer = 0;
 
   const caption = () => document.getElementById('world-caption');
+  let shown: FormationName = 'data';
   const setFormation = (name: FormationName) => {
+    shown = name;
+    if (state.explore) {
+      root.dataset.worldFormation = 'graph';
+      return;
+    }
     root.dataset.worldFormation = name;
     const c = CAPTIONS[name];
     const el = caption();
@@ -94,7 +131,10 @@ export async function startWorld(): Promise<void> {
   };
 
   function sync() {
-    const shouldRun = !!world && root.dataset.worldPaused !== 'true' && !document.hidden && onScreen;
+    const paused = root.dataset.worldPaused === 'true';
+    // Paused while exploring: keep drawing so the camera can move, with time frozen.
+    state.frozen = paused;
+    const shouldRun = !!world && (!paused || !!state.explore) && !document.hidden && onScreen;
     if (shouldRun && !running) world?.start();
     if (!shouldRun && running) world?.stop();
     running = shouldRun;
@@ -139,6 +179,7 @@ export async function startWorld(): Promise<void> {
       });
       root.dataset.worldBackend = tier === 'low' ? 'cpu' : world.backend;
       root.dataset.worldReady = 'true';
+      applyExplore();
     } catch (error) {
       console.error(`World: the ${tier} tier failed to start.`, error);
       probeNote = `${tier} failed`;
@@ -183,7 +224,7 @@ export async function startWorld(): Promise<void> {
   document.addEventListener('astro:after-swap', () => {
     const next = readConfig(document.body.dataset);
     unbindScroll();
-    unbindScroll = bindScroll(formationIndex(next.formation), (w) => (state.targetWeights = w));
+    unbindScroll = bindScroll(formationIndex(next.formation), onScroll);
     if (next.mode !== state.mode) {
       state.mode = next.mode;
       requestAnimationFrame(() => world?.resize());
@@ -230,5 +271,47 @@ export async function startWorld(): Promise<void> {
     });
   }
 
+  function applyExplore() {
+    if (!world || !exploring) return;
+    exploring.apply(world.formation(), world.particles);
+    world.formationChanged();
+  }
+
   await mount(tier);
+  resolveExplorer({
+    enter(hooks, view) {
+      clearTimeout(restoreTimer);
+      exploring = hooks;
+      state.explore = view;
+      state.targetWeights = oneHot(FORMATION_NAMES.indexOf('sde'));
+      root.dataset.worldExplore = 'true';
+      root.dataset.worldFormation = 'graph';
+      applyExplore();
+      world?.resize();
+      sync();
+    },
+    update: applyExplore,
+    exit() {
+      const hooks = exploring;
+      exploring = null;
+      state.explore = null;
+      state.targetWeights = scrollWeights;
+      delete root.dataset.worldExplore;
+      setFormation(shown);
+      world?.resize();
+      sync();
+      // Put the SDE formation back once the world has morphed away from it
+      // (at once when the page itself shows SDE, so the graph springs back into it).
+      const restore = () => {
+        if (!world || !hooks || exploring) return;
+        hooks.restore(world.formation(), world.particles);
+        world.formationChanged();
+      };
+      const stays = (scrollWeights[FORMATION_NAMES.indexOf('sde')] ?? 0) > 0.5;
+      if (stays) restore();
+      else restoreTimer = window.setTimeout(restore, 1500);
+    },
+    project: (p) => world?.project(p) ?? null,
+    tier: () => tier,
+  });
 }

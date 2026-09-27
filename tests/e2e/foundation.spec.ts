@@ -10,6 +10,7 @@ const pages = [
   '/projects/predictive-maintenance/',
   '/projects/support-agent/present/',
   '/experience/',
+  '/lab/',
   '/about/',
   '/resume/',
   '/contact/',
@@ -48,7 +49,7 @@ test('the world slot persists across client-side navigation', async ({ page }) =
   );
   await expect(page.locator('html')).toHaveAttribute('data-world-formation', 'data');
 
-  await page.getByRole('link', { name: 'Work' }).click();
+  await page.getByRole('link', { name: 'Work', exact: true }).click();
   await expect(page).toHaveURL(/\/projects\/$/);
   await page.locator('main a[href="/projects/inference-gateway/"]').first().click();
   await expect(page.locator('html')).toHaveAttribute('data-world-mode', 'band');
@@ -71,7 +72,7 @@ test('theme and pause are remembered across navigation and reloads', async ({ pa
   await expect(html).toHaveAttribute('data-theme', 'light');
   await expect(html).toHaveAttribute('data-world-paused', 'true');
 
-  await page.getByRole('link', { name: 'Work' }).click();
+  await page.getByRole('link', { name: 'Work', exact: true }).click();
   await expect(html).toHaveAttribute('data-theme', 'light');
   await expect(page.getByRole('button', { name: 'Pause motion' })).toHaveAttribute('aria-pressed', 'true');
 

@@ -2,7 +2,7 @@
 // given tier. The controller in index.ts owns the state that must survive a
 // tier switch or a page navigation (time, weights, camera, pointer).
 import { PerspectiveCamera, Scene, Vector3, WebGPURenderer, type RenderPipeline } from 'three/webgpu';
-import { approach, blendPose, drift, fitDistance, orbitPosition, parallax } from './camera';
+import { approach, blendPose, drift, fitDistance, orbitPosition, parallax, type Pose } from './camera';
 import {
   FLOATS_PER_PARTICLE,
   FORMATION_NAMES,
@@ -26,9 +26,23 @@ export const REGION: [number, number] = [0.46, 0.97];
 const WEIGHT_TAU = 0.25;
 const CAMERA_TAU = 0.9;
 
+/**
+ * The architecture explorer's view: the pose to frame, and the part of the
+ * viewport the world composes into (the rest is the explorer's panel).
+ */
+export interface ExploreView {
+  pose: Pose;
+  /** Orbit and zoom the visitor added by dragging, keys or the wheel. */
+  orbit: { azimuth: number; elevation: number; zoom: number };
+  stage: { left: number; top: number; width: number; height: number };
+}
+
 /** State owned by the controller and shared with whichever world is running. */
 export interface SharedState {
   time: number;
+  /** Paused while exploring: the loop keeps running for the camera, but time stands still. */
+  frozen: boolean;
+  explore: ExploreView | null;
   weights: number[];
   targetWeights: number[];
   mode: 'full' | 'band' | 'off';
@@ -149,6 +163,7 @@ export async function createWorld(
     ml: [1, 1, 1],
   };
   const ray = new Vector3();
+  const projected = new Vector3();
 
   function applyTheme() {
     applySettings(material, R, state.theme.settings);
@@ -198,6 +213,24 @@ export async function createWorld(
   }
 
   function compose(): { spanX: number; spanY: number } {
+    const ex = state.explore;
+    if (ex) {
+      // The explorer: compose into its stage, beside (or above) its panel.
+      const { left, top, width, height } = ex.stage;
+      camera.setViewOffset(
+        size.w,
+        size.h,
+        size.w / 2 - (left + width / 2),
+        size.h / 2 - (top + height / 2),
+        size.w,
+        size.h,
+      );
+      camera.updateProjectionMatrix();
+      R.maskFrom.value = 0;
+      R.maskTop.value = -1;
+      R.maskBottom.value = 2;
+      return { spanX: Math.max(0.2, width / size.w), spanY: Math.max(0.2, height / size.h) };
+    }
     if (state.mode === 'off') {
       // Presentation mode hides the world; CSS removes it and the observer pauses the loop.
       R.maskTop.value = 1;
@@ -231,16 +264,20 @@ export async function createWorld(
   }
 
   function updateCamera(dt: number) {
-    const pose = blendPose(state.weights);
+    const ex = state.explore;
+    const pose = ex?.pose ?? blendPose(state.weights);
     const { spanX, spanY } = compose();
     // The band is wide and short: let the formation overfill it vertically a little.
-    const fill = state.mode === 'band' ? 1.25 : 0.85;
-    const distance = fitDistance(pose.radius, FOV, camera.aspect, spanX, fill, spanY);
+    const fill = state.mode === 'band' && !ex ? 1.25 : 0.85;
+    const distance = fitDistance(pose.radius, FOV, camera.aspect, spanX, fill, spanY) * (ex?.orbit.zoom ?? 1);
     const d = drift(state.time);
-    const px = parallax(state.pointer.x, state.pointer.y);
+    const px = ex ? { azimuth: 0, elevation: 0 } : parallax(state.pointer.x, state.pointer.y);
     const goal = {
-      azimuth: pose.azimuth + d.azimuth + px.azimuth,
-      elevation: pose.elevation + d.elevation + px.elevation,
+      azimuth: pose.azimuth + d.azimuth + px.azimuth + (ex?.orbit.azimuth ?? 0),
+      elevation: Math.max(
+        -1.2,
+        Math.min(1.2, pose.elevation + d.elevation + px.elevation + (ex?.orbit.elevation ?? 0)),
+      ),
       distance,
       target: pose.target,
     };
@@ -279,7 +316,7 @@ export async function createWorld(
     const now = performance.now();
     const dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000));
     last = now;
-    state.time += dt;
+    if (!state.frozen) state.time += dt;
     for (let k = 0; k < K; k++) {
       state.weights[k] = approach(state.weights[k] ?? 0, state.targetWeights[k] ?? 0, dt, WEIGHT_TAU);
     }
@@ -305,7 +342,7 @@ export async function createWorld(
       writeUniforms(U, inputs);
       renderer.compute(gpu.compute);
     }
-    const bloomNow = pipeline && state.theme.settings.bloom && state.mode === 'full';
+    const bloomNow = pipeline && state.theme.settings.bloom && (state.mode === 'full' || !!state.explore);
     if (bloomNow) pipeline?.render();
     else renderer.render(scene, camera);
 
@@ -376,6 +413,24 @@ export async function createWorld(
     },
     resize,
     applyTheme,
+    /** Formation data as the running simulation reads it (GPU buffer or CPU array). */
+    formation(): Float32Array {
+      return tier.sim === 'gpu' ? (gpu.form.value.array as Float32Array) : form;
+    },
+    /** Re-uploads the formation data after it was rewritten. */
+    formationChanged() {
+      if (tier.sim !== 'gpu') return;
+      const attribute = gpu.form.value as typeof gpu.form.value & { pbo?: { needsUpdate: boolean } };
+      attribute.needsUpdate = true;
+      // WebGL2 reads the buffer through a texture made from the same array.
+      if (attribute.pbo) attribute.pbo.needsUpdate = true;
+    },
+    /** Projects a world point to viewport pixels with the current camera; null when behind it. */
+    project(p: readonly [number, number, number]): { x: number; y: number } | null {
+      const v = projected.set(p[0], p[1], p[2]).project(camera);
+      if (v.z > 1) return null;
+      return { x: ((v.x + 1) / 2) * size.w, y: ((1 - v.y) / 2) * size.h };
+    },
     stats(): FrameStats {
       const info = renderer.info as unknown as {
         render: { drawCalls: number };

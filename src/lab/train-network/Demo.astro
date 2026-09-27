@@ -1,0 +1,146 @@
+---
+// Markup for "Train a network in your browser". The field is a 2D canvas you
+// click (or drive with the keyboard); the network is drawn in 3D beside it
+// when the tier allows. train-network.ts wires it up.
+import { PRESETS } from './logic';
+
+const presetLabel: Record<(typeof PRESETS)[number], string> = {
+  clusters: 'Two clusters',
+  xor: 'XOR (four quadrants)',
+  circle: 'A circle inside a ring',
+  spiral: 'Two spirals',
+};
+---
+
+<div class="demo train" data-demo="train-network" hidden>
+  <div class="train-views">
+    <div class="field-wrap">
+      <canvas
+        class="train-field"
+        data-field
+        width="480"
+        height="480"
+        tabindex="0"
+        aria-label="Training field. Arrow keys move the cursor; Enter adds a point of the chosen class; Delete removes the nearest point."
+        aria-describedby="train-summary"
+      ></canvas>
+    </div>
+    <div class="demo-view network-view" data-view>
+      <div class="demo-labels" aria-hidden="true" data-labels></div>
+    </div>
+  </div>
+  <div class="demo-side">
+    <form class="demo-controls" data-controls>
+      <fieldset class="field">
+        <legend>Class to add</legend>
+        <label class="check">
+          <input type="radio" name="label" value="1" checked />
+          <span class="swatch a" aria-hidden="true"></span> Class A (filled circles)
+        </label>
+        <label class="check">
+          <input type="radio" name="label" value="0" />
+          <span class="swatch b" aria-hidden="true"></span> Class B (hollow squares)
+        </label>
+      </fieldset>
+      <label class="field">
+        <span>Example data</span>
+        <select name="preset">
+          {PRESETS.map((p, i) => (
+            <option value={p} selected={i === 1}>
+              {presetLabel[p]}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div class="demo-actions">
+        <button type="button" class="button" data-train>
+          Pause training
+        </button>
+        <button type="button" class="button" data-reset>
+          Reset weights
+        </button>
+        <button type="button" class="button" data-clear>
+          Clear points
+        </button>
+      </div>
+    </form>
+    <dl class="demo-metrics">
+      <div>
+        <dt>Accuracy</dt>
+        <dd data-metric="accuracy">–</dd>
+      </div>
+      <div>
+        <dt>Loss</dt>
+        <dd data-metric="loss">–</dd>
+      </div>
+      <div>
+        <dt>Steps</dt>
+        <dd data-metric="steps">0</dd>
+      </div>
+    </dl>
+    <p class="small muted" data-where></p>
+    <p class="small" id="train-summary" data-summary aria-live="polite"></p>
+  </div>
+</div>
+
+<style>
+  .train-views {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .field-wrap {
+    position: relative;
+  }
+
+  .train-field {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    background: var(--raised);
+    border: 1px solid var(--line);
+    cursor: crosshair;
+    touch-action: none;
+  }
+
+  .train-field:focus-visible {
+    outline: 2px solid var(--ml);
+    outline-offset: 2px;
+  }
+
+  .network-view {
+    aspect-ratio: 16 / 9;
+    min-height: 12rem;
+  }
+
+  .swatch {
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+  }
+
+  .swatch.a {
+    border-radius: 50%;
+    background: var(--ml);
+  }
+
+  .swatch.b {
+    border: 2px solid var(--text);
+  }
+
+  @media (min-width: 900px) {
+    .train-views {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .train {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .train .demo-side {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>

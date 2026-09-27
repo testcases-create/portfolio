@@ -16,6 +16,26 @@ import { gzipSync } from 'node:zlib';
 // engineJs: 320 KB since Phase 3 (PLAN.md section 14): the engine loads after first paint.
 export const BUDGETS = { initialJs: 50_000, engineJs: 320_000, preloadedFonts: 60_000 };
 
+/**
+ * Features that load only when opened (BRIEF.md 8, PLAN.md 7.8): the chunks
+ * each one brings, measured after the page and the engine (three.js is
+ * already there, so it doesn't count again). The first chunk is the entry;
+ * the others are loaded from it.
+ */
+export const LAZY: Record<
+  string,
+  { chunks: string[]; budget: number; data?: { file: string; budget: number } }
+> = {
+  explorer: { chunks: ['explorer'], budget: 25_000 },
+  'train-network': { chunks: ['train-network', 'network-scene', 'train-gpu'], budget: 35_000 },
+  'watch-attention': {
+    chunks: ['watch-attention', 'attention-scene'],
+    budget: 25_000,
+    data: { file: 'lab/attention.json', budget: 120_000 },
+  },
+  'scale-system': { chunks: ['scale-system', 'system-scene'], budget: 25_000 },
+};
+
 const gz = (s: string | Buffer) => gzipSync(s, { level: 9 }).length;
 
 /** Static import specifiers (not dynamic import()) in a built ES module. */
@@ -36,10 +56,10 @@ export function measurePage(dist: string, htmlFile: string) {
   const seen = new Set<string>();
   const lazy = new Map<string, string>(); // chunk name → absolute path
 
-  /** Adds a module graph to `seen`; returns its gzipped size. */
-  const visit = (file: string): number => {
-    if (seen.has(file)) return 0;
-    seen.add(file);
+  /** Adds a module graph to `into` (by default, what the page has loaded); returns its gzipped size. */
+  const visit = (file: string, into = seen): number => {
+    if (into.has(file)) return 0;
+    into.add(file);
     const code = readFileSync(file, 'utf8');
     let bytes = gz(code);
     for (const spec of dynamicImports(code)) {
@@ -47,8 +67,8 @@ export function measurePage(dist: string, htmlFile: string) {
       if (name) lazy.set(name, resolve(dirname(file), spec));
     }
     for (const spec of staticImports(code)) {
-      if (spec.startsWith('.')) bytes += visit(resolve(dirname(file), spec));
-      else if (spec.startsWith('/')) bytes += visit(join(dist, spec));
+      if (spec.startsWith('.')) bytes += visit(resolve(dirname(file), spec), into);
+      else if (spec.startsWith('/')) bytes += visit(join(dist, spec), into);
     }
     return bytes;
   };
@@ -81,7 +101,19 @@ export function measurePage(dist: string, htmlFile: string) {
   for (const [, href = ''] of html.matchAll(/<link rel="preload" href="([^"]+)" as="font"/g)) {
     fonts += readFileSync(join(dist, href)).length;
   }
-  return { js: initial, engine, fonts };
+  const lazyBytes: Record<string, number> = {};
+  for (const [name, feature] of Object.entries(LAZY)) {
+    const entryFile = lazy.get(feature.chunks[0] ?? '');
+    if (!entryFile) continue;
+    const loaded = new Set(seen);
+    let bytes = 0;
+    for (const chunk of feature.chunks) {
+      const file = lazy.get(chunk);
+      if (file) bytes += visit(file, loaded);
+    }
+    lazyBytes[name] = bytes;
+  }
+  return { js: initial, engine, fonts, lazy: lazyBytes };
 }
 
 const pages = (dir: string): string[] =>
@@ -93,8 +125,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const dist = resolve('dist');
   const kb = (n: number) => `${(n / 1000).toFixed(1)} KB`;
   let failed = false;
+  const features = new Map<string, number>();
   for (const file of pages(dist)) {
-    const { js, engine, fonts } = measurePage(dist, file);
+    const { js, engine, fonts, lazy } = measurePage(dist, file);
     const over = js > BUDGETS.initialJs || engine > BUDGETS.engineJs || fonts > BUDGETS.preloadedFonts;
     failed ||= over;
     console.log(
@@ -102,6 +135,26 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         `  engine ${kb(engine)} / ${kb(BUDGETS.engineJs)}` +
         `  preloaded fonts ${kb(fonts)} / ${kb(BUDGETS.preloadedFonts)}`,
     );
+    for (const [name, bytes] of Object.entries(lazy))
+      features.set(name, Math.max(features.get(name) ?? 0, bytes));
+  }
+  console.log('\nLoaded only when opened (largest on any page):');
+  for (const [name, feature] of Object.entries(LAZY)) {
+    const bytes = features.get(name);
+    const missing = bytes === undefined;
+    const over = missing || bytes > feature.budget;
+    failed ||= over;
+    console.log(
+      `${over ? 'FAIL' : 'ok  '}  ${name}  ${missing ? 'not found in any page' : kb(bytes)} / ${kb(feature.budget)}`,
+    );
+    if (feature.data) {
+      const size = gz(readFileSync(join(dist, feature.data.file)));
+      const dataOver = size > feature.data.budget;
+      failed ||= dataOver;
+      console.log(
+        `${dataOver ? 'FAIL' : 'ok  '}  ${name} data (${feature.data.file})  ${kb(size)} / ${kb(feature.data.budget)}`,
+      );
+    }
   }
   if (failed) process.exit(1);
 }

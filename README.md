@@ -39,9 +39,11 @@ Run these against a preview server (`npm run build:preview && npx astro preview 
 | `npm run resume-pdf`     | `public/resume.pdf` from `/resume`, and checks it is one page |
 | `npm run capture-poster` | `public/poster/*.webp`, the poster tier's stills              |
 
-## Graphics
+## Graphics and the Lab
 
 The world lives in `src/graphics/`. `docs/walkthrough.md` explains how it works in plain language. In dev and preview builds, `/dev/world` shows every formation; add `?tier=high|medium|low|poster` to force a tier, or open Stats for nerds in the footer.
+
+The Lab's three demos live in `src/lab/<demo>/`: `logic.ts` (plain TypeScript, unit-tested), an entry module for the controls, and a scene module that loads three.js only when the tier allows a 3D view. On a project page, "Explore in 3D" (`src/graphics/explorer.ts`) turns the world into that project's architecture graph.
 
 ## Editing content
 
