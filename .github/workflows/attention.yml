@@ -1,0 +1,92 @@
+name: Precompute attention
+
+# Runs scripts/precompute-attention.py on GitHub's runners, which can reach
+# Hugging Face, and opens a pull request with the new public/lab/attention.json.
+# Start it from the Actions tab: "Precompute attention" → "Run workflow".
+#
+# For the pull request step, the repository must allow it: Settings → Actions →
+# General → Workflow permissions → tick "Allow GitHub Actions to create and
+# approve pull requests".
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: A causal language model on the Hugging Face hub
+        default: distilgpt2
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: precompute-attention
+  cancel-in-progress: false
+
+jobs:
+  precompute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MODEL: ${{ inputs.model }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PyTorch (CPU) and Transformers
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install transformers
+      - name: Compute attention
+        run: python scripts/precompute-attention.py --model "$MODEL"
+
+      # Check the new file the way the site will use it before proposing it.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Check the data
+        run: |
+          npx vitest run src/lab/watch-attention
+          node -e "
+            const fs = require('fs');
+            const zlib = require('zlib');
+            const file = JSON.parse(fs.readFileSync('public/lab/attention.json', 'utf8'));
+            if (file.source !== 'model') throw new Error('expected source: model');
+            const size = zlib.gzipSync(fs.readFileSync('public/lab/attention.json'), { level: 9 }).length;
+            console.log('attention.json:', (size / 1000).toFixed(1), 'KB gzipped (budget 120 KB)');
+            if (size > 120000) throw new Error('over the 120 KB budget');
+          "
+
+      - name: Open a pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BODY: >-
+            Computed by the "Precompute attention" workflow with
+            scripts/precompute-attention.py. It replaces the rule-based sample,
+            so the Lab's "sample data" notice disappears and the file no longer
+            blocks a production build. The attention tests and the 120 KB budget
+            passed in the workflow. Pull requests opened with the workflow's
+            token don't start other workflows, so CI hasn't run on this one yet:
+            close and reopen it, or push a commit to the branch, to run CI before
+            merging.
+        run: |
+          if git diff --quiet -- public/lab/attention.json; then
+            echo "attention.json is unchanged; nothing to propose."
+            exit 0
+          fi
+          branch="attention-data/${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add public/lab/attention.json
+          git commit -m "feat(lab): attention data computed from $MODEL"
+          git push origin "$branch"
+          gh pr create \
+            --base "$GITHUB_REF_NAME" \
+            --head "$branch" \
+            --title "feat(lab): real attention data from $MODEL" \
+            --body "$BODY Model: $MODEL. Run: $RUN_URL"

@@ -58,7 +58,8 @@ const fullTitle = title === strip(site.name) ? title : `${title} · ${strip(site
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    {noindex && <meta name="robots" content="noindex" />}
+    {/* Demo builds publish the example persona: keep every page out of search results. */}
+    {(noindex || import.meta.env.DEMO === '1') && <meta name="robots" content="noindex, nofollow" />}
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
     <meta name="color-scheme" content="dark light" />
     <Font cssVariable="--font-archivo" preload />
@@ -79,7 +80,16 @@ const fullTitle = title === strip(site.name) ? title : `${title} · ${strip(site
         } catch {
           /* storage blocked: play the intro */
         }
-        if (!seen && !matchMedia('(prefers-reduced-motion: reduce)').matches) root.classList.add('intro');
+        if (!seen && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          root.classList.add('intro');
+          // Any input skips the intro, even before its script has loaded.
+          const skip = () => {
+            root.dataset.introSkip = '1';
+            for (const t of inputs) removeEventListener(t, skip, true);
+          };
+          const inputs = ['pointerdown', 'keydown', 'wheel', 'touchstart'];
+          for (const t of inputs) addEventListener(t, skip, { capture: true, passive: true });
+        }
       })();
     </script>
     <slot name="head" />

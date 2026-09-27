@@ -236,11 +236,49 @@ test('the hero intro plays once per session and never hides the headline', async
   await expect(html(page)).not.toHaveClass(/intro/);
 });
 
-test('any input skips the intro', async ({ page }) => {
+test('any input during the intro skips it', async ({ page }) => {
   await page.goto(world('/'));
-  // The intro chunk loads after the page; input can only skip it once it is listening.
   await expect(html(page)).toHaveAttribute('data-intro-start', /\d/);
   await page.keyboard.press('Shift');
   await expect(html(page)).toHaveAttribute('data-intro-skip', '1');
   await expect(page.locator('#hero-name')).toHaveCSS('opacity', '1');
+});
+
+// CI run #8 failed here: the key press arrived before the intro chunk had
+// loaded, so nothing was listening and the intro played in full. The inline
+// script in the page head now records early input. This test makes the race
+// certain by holding the intro chunk back.
+test('input before the intro script has loaded still skips it', async ({ page }) => {
+  let release = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(/\/intro\.[\w-]+\.js$/, async (route) => {
+    await held;
+    await route.continue();
+  });
+  await page.goto(world('/'));
+  await page.keyboard.press('Shift');
+  await expect(html(page)).toHaveAttribute('data-intro-skip', '1');
+  release();
+  await expect(html(page)).not.toHaveClass(/intro/);
+  await expect(page.locator('#hero-name')).toHaveCSS('opacity', '1');
+  expect(await html(page).getAttribute('data-intro-start')).toBeNull();
+});
+
+// Home's LCP budget: the intro's chunk (GSAP and SplitText, about 30 KB) must
+// not be requested before the first paint, or on a slow connection it competes
+// with the CSS and fonts the hero text needs (Lighthouse counted it, adding
+// 150–300 ms to Home's LCP in some runs).
+test('the intro chunk is requested only after the first paint', async ({ page }) => {
+  await page.goto(world('/'));
+  await expect(html(page)).toHaveAttribute('data-intro-start', /\d/);
+  const timing = await page.evaluate(() => {
+    const paint = performance.getEntriesByName('first-contentful-paint')[0]?.startTime ?? Infinity;
+    const intro = performance
+      .getEntriesByType('resource')
+      .filter((e) => /\/(intro|gsap)\.[\w-]+\.js$/.test(e.name))
+      .map((e) => e.startTime);
+    return { paint, intro };
+  });
+  expect(timing.intro.length).toBeGreaterThan(0);
+  for (const start of timing.intro) expect(start).toBeGreaterThanOrEqual(timing.paint);
 });

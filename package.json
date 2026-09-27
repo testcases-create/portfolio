@@ -10,6 +10,7 @@
     "dev": "astro dev",
     "build": "npm run check-content -- --strict && astro build",
     "build:preview": "ALLOW_PLACEHOLDERS=1 astro build",
+    "build:demo": "DEMO=1 astro build",
     "preview": "astro preview",
     "check": "astro check",
     "check-content": "node --experimental-strip-types scripts/check-content.ts",
@@ -28,7 +29,8 @@
     "screenshots": "node --experimental-strip-types scripts/screenshots.ts",
     "profile-frames": "node --experimental-strip-types scripts/profile-frames.ts",
     "bench": "vitest run src/graphics/sim.cpu.perf.test.ts",
-    "content-guide": "node --experimental-strip-types scripts/content-guide.ts && prettier --write CONTENT_GUIDE.md --log-level warn"
+    "content-guide": "node --experimental-strip-types scripts/content-guide.ts && prettier --write CONTENT_GUIDE.md --log-level warn",
+    "check-demo": "node --experimental-strip-types scripts/check-demo.ts"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.3.0",

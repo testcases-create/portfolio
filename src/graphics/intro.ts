@@ -19,6 +19,17 @@ export function runIntro(): void {
     root.classList.remove('intro');
     return;
   }
+  // The visitor pressed a key, clicked, scrolled or touched before this chunk
+  // loaded (the inline script in Base.astro records it): skip straight to the end.
+  if (root.dataset.introSkip) {
+    root.classList.remove('intro');
+    try {
+      sessionStorage.setItem(SEEN_KEY, '1');
+    } catch {
+      // Not remembered: harmless.
+    }
+    return;
+  }
   try {
     sessionStorage.setItem(SEEN_KEY, '1');
   } catch {

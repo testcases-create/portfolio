@@ -1,6 +1,6 @@
 # Phase 0: plan and prototype
 
-Status: Phases 0–4 approved and merged. Phase 5 (QA and polish) complete; results in section 17.
+Status: Phases 0–5 approved and merged. Launch readiness (demo mode, attention workflow, CI fix, LCP) in section 18.
 
 ## 1. The brief in five lines
 
@@ -770,3 +770,61 @@ for the serif font. That made no difference, so I reverted it.
    (`src/content/experience/halden-systems.md`).
 9. Your three strongest projects: outcome title and headline metric.
 10. The public repository link for this site (`this-site` `links.repo`).
+
+## 18. Launch readiness (27 September 2026)
+
+**Demo mode.**
+
+- `npm run build:demo` (`DEMO=1`) is what Netlify publishes until launch. It:
+  - allows placeholders and shows them as badges;
+  - adds `noindex, nofollow` to every page, and `X-Robots-Tag: noindex, nofollow`
+    for every file via a generated `_headers`;
+  - publishes no sitemap and no `/dev` pages.
+- `npm run check-demo` verifies all of that, and CI runs it last. Deploy
+  previews and branch deploys use the demo build permanently.
+- **Launch is one change:** in `netlify.toml`, set `[build] command = "npm run build"`.
+
+**Attention workflow.** `.github/workflows/attention.yml` is started by hand
+(`workflow_dispatch`).
+
+- It runs the precompute script on GitHub's runners, checks the result (the
+  attention tests, `source: model`, the 120 KB budget) and opens a pull
+  request.
+- **It needs one repository setting:** Settings → Actions → General → Workflow
+  permissions → "Allow GitHub Actions to create and approve pull requests".
+- Pull requests created with `GITHUB_TOKEN` don't trigger CI. Close and reopen
+  the pull request to run it.
+- The "sample data" notice depends only on `source`, so it disappears with the
+  real data. I checked this by marking the file as model data and running the
+  Lab test.
+
+**CI run #8 (commit ad2be08).**
+
+- **What failed:** "any input skips the intro". The Shift press arrived before
+  the lazily loaded intro chunk had attached its listeners (the trace shows
+  `data-intro-start` set, and no skip).
+- **Why it looked flaky:** the test passed on the branch and failed on `main`
+  depending on which won the race.
+- **The earlier fix:** Phase 4 made the test wait for the intro.
+- **This fix:** an inline listener records early input, and the intro honours
+  it. This fixes the visitor-facing bug too.
+- **Test:** a new test holds back the intro chunk to force the race. It fails
+  without the fix, with the same assertion as run #8.
+- **Every run on `main` since has passed:** #11, #14 and #19.
+
+**Home LCP.**
+
+- **Phase 4 added no LCP time.** The Phase 3 and Phase 4 builds, run side by
+  side, gave the same distribution, 1.66–1.85 s.
+- **The spread is Lighthouse's worst-case estimate.** It counts requests that
+  start before the observed largest paint, and the intro chunk sometimes did.
+- **The fix:** the intro loads after the first contentful paint, and a test
+  guards it.
+- **The result:** over 12 interleaved runs each, the median held at 1.67 s and
+  the worst case fell from 1.96 s to 1.81 s.
+- **Rejected ideas:**
+  - Dropping the Archivo preload was erratic, with CLS 0.044.
+  - Setting the hero line in the sans made no difference.
+  - Narrowing Archivo's width axis saves only 2.6 KB.
+- **The assertion:** Home's LCP is now judged on the median of three runs
+  (Lighthouse CI's default is the best run), with a warning at 1.85 s.

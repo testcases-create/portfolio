@@ -17,9 +17,9 @@ metrics:
     baseline: 320 KB budget
     measuredBy: Gzipped JavaScript the engine adds after first paint, measured on the built site by scripts/budgets.ts in CI
   - label: JavaScript before idle
-    value: 10.4 KB
+    value: 10.8 KB
     baseline: 50 KB budget
-    measuredBy: Gzipped initial JavaScript on project pages (39.9 KB on Home, which adds the one-time intro), same script
+    measuredBy: Gzipped initial JavaScript on project pages (40.2 KB on Home, which adds the one-time intro), same script
   - label: GPU kernel against CPU spec
     value: < 0.2% error
     measuredBy: Playwright steps the WebGPU and WebGL2 kernels once and compares the buffers with the CPU simulation, in CI on Chrome 153
@@ -91,19 +91,19 @@ Pages are static Astro. One `#world` element persists across navigation, and pag
 
 ## Evaluation
 
-CI runs lint, type checking, 140 unit tests, 93 end-to-end tests with axe accessibility checks in both themes, the size budgets and Lighthouse CI on every push.
+CI runs lint, type checking, 142 unit tests, 95 end-to-end tests with axe accessibility checks in both themes, the size budgets and Lighthouse CI on every push.
 
-| Check                                                    | Result                               |
-| -------------------------------------------------------- | ------------------------------------ |
-| Graphics engine after first paint                        | 303.9 KB of 320 KB                   |
-| JavaScript before idle                                   | 9.3–10.4 KB (Home 39.9 KB) of 50 KB  |
-| Architecture explorer, loaded on demand                  | 3.7 KB of 25 KB                      |
-| Lab demos, loaded on demand                              | 5.4–7.6 KB each, of 25–35 KB         |
-| GPU particle kernel against CPU spec (WebGL2 and WebGPU) | under 0.2% error                     |
-| GPU training kernels against CPU spec (40 steps)         | largest difference 0.00000012        |
-| Low tier CPU simulation, 4,096 particles                 | 4.0 ms a step on the build machine   |
-| Lighthouse mobile, six page types                        | performance 99–100, 0–23 ms blocking |
-| Home largest paint (hero text), six runs                 | 1.66–1.96 s, median 1.81 s, of 2.0 s |
+| Check                                                    | Result                                |
+| -------------------------------------------------------- | ------------------------------------- |
+| Graphics engine after first paint                        | 303.9 KB of 320 KB                    |
+| JavaScript before idle                                   | 9.6–10.8 KB (Home 40.2 KB) of 50 KB   |
+| Architecture explorer, loaded on demand                  | 3.7 KB of 25 KB                       |
+| Lab demos, loaded on demand                              | 5.4–7.6 KB each, of 25–35 KB          |
+| GPU particle kernel against CPU spec (WebGL2 and WebGPU) | under 0.2% error                      |
+| GPU training kernels against CPU spec (40 steps)         | largest difference 0.00000012         |
+| Low tier CPU simulation, 4,096 particles                 | 4.0 ms a step on the build machine    |
+| Lighthouse mobile, six page types                        | performance 99–100, 0–23 ms blocking  |
+| Home largest paint (hero text), 12 runs                  | median 1.66 s, worst 1.81 s, of 2.0 s |
 
 ## Deployment and operations
 

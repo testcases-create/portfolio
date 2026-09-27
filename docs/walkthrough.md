@@ -350,3 +350,74 @@ longer matches the content, so it is always current. _Where:_
 - CLS is at most 0.001, and blocking time at most 14 ms.
 - 142 unit tests and 93 end-to-end tests pass.
 - Every page and every lazy feature is within budget.
+
+## Launch readiness: demo mode, real data, a flaky test, and LCP
+
+**Demo mode, and a one-line launch.** Until the real details are in, Netlify
+publishes a demo build (`npm run build:demo`). It keeps the `[EDIT]` badges,
+so anyone can see what is example content. It also keeps the example persona
+out of search engines in three ways:
+
+- a `noindex` meta tag on every page;
+- an `X-Robots-Tag: noindex` header, which also covers the résumé PDF and
+  images, since a meta tag can't;
+- no sitemap.
+
+The build also leaves out the `/dev` test pages. CI checks each demo build
+with `npm run check-demo`. Launching is one change: in `netlify.toml`, set
+`command = "npm run build"`, the strict build that fails on any placeholder.
+_Where:_ `astro.config.ts` (`DEMO`), `src/layouts/Base.astro`,
+`scripts/check-demo.ts`, `netlify.toml`.
+
+**Real attention data without a GPU or a fast connection.** A manually
+started GitHub Actions workflow does the work:
+
+1. It runs the Python precompute script on GitHub's runners, which can reach
+   Hugging Face.
+2. It checks the new file against the same tests and budget as the site.
+3. It opens a pull request with the file.
+
+The Lab's "sample data" notice is driven by the file itself (`"source":
+"sample"`), so it disappears as soon as the real data is merged. Nothing else
+needs to change. _Where:_ `.github/workflows/attention.yml`.
+
+**A flaky test that was a real bug.** CI run #8 failed on "any input skips
+the intro". The trace showed a race: the key was pressed after the page
+loaded but before the intro's script had loaded, so nothing was listening and
+the intro played in full. A real visitor who pressed a key or scrolled early
+got the same result. The fix is in the product, not only the test: a tiny
+inline script in the page head records any early input, and the intro skips
+itself if it finds that record. A new test forces the race by holding back
+the intro's script. Without the fix it fails exactly as run #8 did. _Where:_
+`src/layouts/Base.astro`, `src/graphics/intro.ts`, `tests/e2e/world.spec.ts`.
+
+**Finding what "added" LCP time.** I built the Phase 3 and Phase 4 commits
+side by side and ran Lighthouse on both, interleaved so they saw the same
+machine load. They measured the same, so Phase 4's code added nothing. The
+steady 1.66 s after Phase 3 had come from a quiet machine.
+
+The spread comes in steps of one simulated round trip (150 ms). That fits how
+Lighthouse estimates a slow phone: it replays the page's requests on a
+simulated network, and its worst-case estimate counts every request that
+started before the largest paint. The intro's GSAP chunk (about 30 KB) was
+requested just before that paint, so in some runs it competed with the fonts
+and CSS.
+
+The intro now starts once the browser reports its first contentful paint.
+`requestAnimationFrame` wasn't enough: it runs before the frame is painted,
+and a new test caught that. Over 12 interleaved runs each:
+
+| Build    | Median | Worst  |
+| -------- | ------ | ------ |
+| `main`   | 1.67 s | 1.96 s |
+| This fix | 1.67 s | 1.81 s |
+
+I checked two other ideas and rejected them:
+
+- **Not preloading the headline font** swung LCP between 0.9 and 1.8 s and
+  pushed layout shift to 0.044.
+- **Setting the hero line in the preloaded sans** made no difference.
+
+Lighthouse CI now judges Home's LCP on the median of its runs (it used the
+best run before), and warns above 1.85 s, before the 2.0 s budget fails.
+_Where:_ `src/scripts/boot.ts` (`afterFirstPaint`), `lighthouserc.json`.

@@ -68,7 +68,7 @@ const GUIDANCE: Guidance[] = [
     match: /^public\/lab\/attention\.json$/,
     title: 'Lab attention data',
     belongs:
-      'Real attention from distilgpt2 in place of the rule-based sample. Run `pip install torch transformers`, then `npm run precompute-attention`, which overwrites the file (about a 350 MB model download, once).',
+      'Real attention from distilgpt2 in place of the rule-based sample. Run the "Precompute attention" workflow from the Actions tab (it opens a pull request with the new file), or locally run `pip install torch transformers` and then `npm run precompute-attention` (about a 350 MB model download, once).',
     example: 'The regenerated file has `"source": "model"` and no note.',
   },
 ];
@@ -125,7 +125,7 @@ export function renderGuide(root = process.cwd()): string {
   );
   out.push('');
   out.push(
-    'After editing: `npm run check-content` to see what is left, `npm run resume-pdf` and `npm run og-images` to regenerate the résumé and social cards (both read the content), then `npm run content-guide` to refresh this file.',
+    'After editing: `npm run check-content` to see what is left, `npm run resume-pdf` and `npm run og-images` to regenerate the résumé and social cards (both read the content), then `npm run content-guide` to refresh this file. When nothing is left, launch by switching Netlify to the strict build: in `netlify.toml`, set `[build] command = "npm run build"`.',
   );
   out.push('');
   out.push('## Fill these ten first');
