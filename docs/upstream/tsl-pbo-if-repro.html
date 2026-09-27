@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>TSL WebGL2: PBO reads in sibling If() blocks use an unassigned size variable</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.webgpu.js",
+          "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.tsl.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <pre id="out">running…</pre>
+    <script type="module">
+      // Reproduction for three r186.1, WebGL2 backend (forceWebGL: true).
+      //
+      // A storage buffer with setPBO(true) is read at an arbitrary index in two
+      // sibling If() blocks. Only the second block runs. Every element should read
+      // data[2i + 1] = 5, 15, 25, 35. On WebGL2 elements 2 and 3 read 0, because the
+      // texture-width variable used to turn the index into (x, y) is assigned only
+      // inside the first If() block.
+      import * as THREE from 'three/webgpu';
+      import { Fn, If, instancedArray, instanceIndex, uniform } from 'three/tsl';
+
+      const N = 4;
+
+      async function run(kernelFor) {
+        const renderer = new THREE.WebGPURenderer({ forceWebGL: true });
+        await renderer.init();
+
+        const out = instancedArray(N, 'float');
+        const data = instancedArray(N * 2, 'vec4').setPBO(true);
+        for (let i = 0; i < N; i++) {
+          data.value.array.set([i * 10, 0, 0, 0], i * 8); // element 2i
+          data.value.array.set([i * 10 + 5, 0, 0, 0], i * 8 + 4); // element 2i + 1
+        }
+        const branch = uniform(1);
+
+        await renderer.computeAsync(kernelFor(out, data, branch).compute(N));
+        const values = [...new Float32Array(await renderer.getArrayBufferAsync(out.value))];
+        renderer.dispose();
+        return values;
+      }
+
+      // Bug: two sibling If() blocks.
+      const siblingIfs = (out, data, branch) =>
+        Fn(() => {
+          const base = instanceIndex.mul(2);
+          If(branch.equal(0), () => {
+            out.element(instanceIndex).assign(data.element(base).x);
+          });
+          If(branch.equal(1), () => {
+            out.element(instanceIndex).assign(data.element(base.add(1)).x);
+          });
+        })();
+
+      // Control: the same read with no If() is correct.
+      const noIf = (out, data) =>
+        Fn(() => {
+          out.element(instanceIndex).assign(data.element(instanceIndex.mul(2).add(1)).x);
+        })();
+
+      const expected = '5,15,25,35';
+      const bug = await run(siblingIfs);
+      const control = await run(noIf);
+      document.getElementById('out').textContent = [
+        `sibling If() blocks: [${bug.join(', ')}] ${bug.join() === expected ? 'OK' : 'WRONG'}`,
+        `no If() (control):   [${control.join(', ')}] ${control.join() === expected ? 'OK' : 'WRONG'}`,
+        `expected:            [5, 15, 25, 35]`,
+      ].join('\n');
+      window.results = { bug, control };
+    </script>
+  </body>
+</html>

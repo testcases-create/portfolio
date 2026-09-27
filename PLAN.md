@@ -1,6 +1,6 @@
 # Phase 0: plan and prototype
 
-Status: Phase 0 approved. Phase 1 (foundation) complete; see section 11. Waiting for your go-ahead before Phase 2.
+Status: Phases 0 and 1 approved and merged. Phase 2 (graphics engine) complete; requirements in section 12, results in section 13. Waiting for your go-ahead before Phase 3.
 
 ## 1. The brief in five lines
 
@@ -351,10 +351,10 @@ Every particle has a slot in every formation: two `vec4` per formation, written 
   4. Particles on moving paths (packets, attention arcs) follow the path exactly once their formation is fully formed. Otherwise springs lag behind and cut corners.
 - **Curl field:** the curl of a sum-of-sines vector potential. It's divergence-free by construction, costs 9 trig calls instead of 6 Perlin samples, and gives the same result on the GPU and the CPU. A Vitest check will assert its numerical divergence is about 0.
 - **Memory:** 160 bytes of formation data per particle, which is 10.5 MB at 65k. WebGPU's default 128 MiB binding limit caps this design at about 838k particles; the prototype hit that at 1,048,576.
-- **Pitfall found, r186:** a TSL node first emitted inside one `If` block is cached as a variable in that block and reads 0 in sibling blocks when that block is skipped. It hit both my index node on WebGPU and Three's own PBO size variable on WebGL2, and either made every particle collapse to one point.
-  - **Fix:** the kernel evaluates all five formations with no branches, about 250 ALU operations per particle.
-  - **Guard:** Phase 2 adds a Playwright test that reads GPU buffers back on both backends.
-  - **Upstream:** I can file a minimal reproduction with three.js if you want; I haven't filed anything.
+- **Pitfall found, r186:** on the WebGL2 backend, a storage buffer read (through its PBO texture) inside one of two sibling `If` blocks uses a texture-width variable that only the first block assigns, so the second block reads the wrong elements. Phase 2 confirmed it on r186.1 and found the cause in `generatePBO()`. In Phase 0 I also believed an index node was affected on WebGPU; minimal kernels on r186.1 don't reproduce that, so the upstream report covers only the WebGL2 case.
+  - **Fix:** the kernel evaluates all five formations with no branches around buffer reads.
+  - **Guard:** a Playwright test steps the GPU kernel and compares it with the CPU specification (section 13).
+  - **Upstream:** reproduction and issue text in `docs/upstream/`, ready for you to file.
 
 ### 7.4 Rendering
 
@@ -488,4 +488,78 @@ On the page, the quality menu switches tiers live, Stats shows the nerd panel, a
 These are foundation numbers with no graphics loaded; Phase 5 re-measures the finished pages.
 
 **Deviations from the plan.** Architecture data is a separate `architectures` collection joined by `reference()`, which is how a sibling `architecture.yaml` becomes validated build input. Links are strings that may end in ` [EDIT]` rather than `z.url()`, so invented URLs can carry the tag; `strip()` removes it for `href`s. The Content-Security-Policy still allows inline scripts (the pre-paint theme script and Astro's inlined boot module); Phase 5 replaces that with hashes.
+
+## 12. Phase 2 requirements (from your review of the Phase 0 screenshots)
+
+These add to section 7. Where one changes an earlier decision, the note says so.
+
+1. **Dark stays the default; light is tuned on its own.** The light theme gets its own render settings instead of reusing the dark ones: normal blending, higher per-particle alpha, smaller and harder sprites, and a stronger pull toward the role colours, so particles read as ink rather than grey dust.
+2. **A 3D world, not flat diagrams.**
+   - Each formation has its own camera pose. The camera dollies and orbits slightly between them, blended by the same weights that blend the particles.
+   - A slow idle drift and subtle pointer parallax keep the depth visible.
+   - Sprite size and brightness fall off with depth.
+   - The network's layers become discs of nodes spread in depth, seen at an angle. The service graph is laid out in three dimensions, in tiers.
+3. **Data formation.** Strands become finer, brighter and visibly moving: particles stream along the traced strands, and brightness follows each strand's local flow speed. This replaces the Phase 0 cloud, which only jittered around fixed strand points.
+4. **LLM formation.** Token blocks become crisp outlines that snap into place. DOM labels aligned to the projected blocks show each token's text as it is generated, so the sentence can be read.
+5. **Colour.** The hues stay the same, but all three are made vivid in both themes. The palette splits into graphic colours (world, dots, diagrams; at least 3:1 against both surfaces, per WCAG 1.4.11) and text-safe ink variants (at least 4.5:1) for the rare places a role colour is text. The colour-blind separation check runs on both sets.
+6. **Contact.** Replace the three rings with one shape that keeps a trace of each formation: a trefoil knot, one continuous curve with three lobes. Particles flow along it; one lobe carries network pulses, one attention arcs, and one request packets. If the screenshots don't beat the rings, the rings stay.
+7. **Three.js bug.** I'll build a minimal standalone reproduction, confirm it on r186.1 and write the issue text in `docs/upstream/`. You file it on github.com/mrdoob/three.js, because this session can't reach that repo. The "This site" project (Phase 3) will cite the issue link.
+8. **Commits** use `254681952+testcases-create@users.noreply.github.com` from now on (set in this repo's git config).
+9. **Walkthrough.** At the end of every phase I update `docs/walkthrough.md` with a short, plain-language explanation of that phase's key code and design decisions, written so you can explain them in an interview.
+
+## 13. Phase 2 results (27 September 2026)
+
+**Built** (all in `src/graphics/` unless noted):
+- `formations.ts`: all five formations built once on the CPU from a fixed seed, with real depth. The network's layers are discs of nodes, the service graph sits in tiers, the token row bows toward the camera, and Converge is a (2,3) torus knot.
+- `sim.gpu.ts`: one TSL kernel for WebGPU compute and WebGL2 transform feedback, with no branches around buffer reads. `sim.cpu.ts` is the low tier and the specification.
+- `world.ts` and `world-entry.ts`: the renderer, frame loop, camera rig, theme sync, DOM state mirror, pause (user, hidden tab, band scrolled off-screen), tier fallback on failure, and a debug hook for tests.
+- `tiers.ts`: detection, the probe (with a fast bail-out), and dynamic resolution. `src/lib/gpu-check.ts` sends visitors without a usable GPU to the poster before the engine is ever downloaded.
+- `choreography.ts` and `intro.ts`: ScrollTrigger-driven weights, page-transition morphs, and the SplitText intro, which is skippable by any input.
+- `labels.ts`: DOM token labels. The poster stills are in `public/poster/`, captured from the real scene by `scripts/capture-poster.ts`. The Stats for nerds panel and tier menu are in the footer.
+- Narrow-screen windows (`[data-world-window]`) and a CSS-only project band, so the world never sits behind body text and never shifts the layout.
+- `/dev/world`: every formation in one scroll. It exists in dev and preview builds only.
+
+**Your review notes (section 12), as delivered:**
+
+| Note | Result |
+|---|---|
+| 1. Light theme | Its own settings: normal blending, alpha ×2.4, sprites ×0.82 with harder edges, and +0.38 tint toward the role colour. |
+| 2. 3D | Per-formation camera poses blended by weight (dolly and orbit), idle drift, pointer parallax, depth fade, and depth in the network and the service graph. |
+| 3. Data | Particles stream along curl-field strands. Each strand segment's length follows the local flow speed, and brightness follows the length. |
+| 4. LLM | Crisp outline blocks that snap into place, with DOM labels showing each generated token (the current one in gold). |
+| 5. Colour | Graphic and ink colours per role, with the vivid set at the WCAG 1.4.11 limit. `palette.mjs` checks both sets under three colour-vision deficiencies. |
+| 6. Contact | A (2,3) torus knot with three petals: packets, attention chords, and a pulse. It reads as one path, not an atom, so the rings are gone. |
+| 7. Three.js bug | Reproduced on r186.1, root cause found, issue drafted in `docs/upstream/`. It still needs filing by you. |
+| 8. Git email | Set for this repository. |
+| 9. Walkthrough | `docs/walkthrough.md`, covering Phases 1 and 2. |
+
+**Palette** (all checks pass):
+
+| Role | Dark (graphic = ink) | Light graphic | Light ink |
+|---|---|---|---|
+| SDE | `#61B0FE` | `#3587FB` (3.06:1) | `#1069DA` (4.53:1) |
+| LLM | `#F9BD01` | `#B78006` (3.01:1) | `#926502` (4.50:1) |
+| AI/ML | `#FD6AAC` | `#E65598` (3.00:1) | `#C3337A` (4.51:1) |
+
+**Measured:**
+
+| What | Result | Budget |
+|---|---|---|
+| Initial JS, most pages | 8.8 KB | 50 KB |
+| Initial JS, Home (includes GSAP core + SplitText intro) | 39.4 KB | 50 KB |
+| Engine after first paint, most pages | 297.5 KB (three.js 243.4, GSAP core + ScrollTrigger 44.2, world code about 10) | 300 KB |
+| Engine after first paint, Home (GSAP already loaded) | 270.5 KB | 300 KB |
+| CPU simulation, low tier only (own chunk) | 1.8 KB | — |
+| Poster stills | 16.2 / 16.1 KB wide, 11.8 / 11.5 KB narrow | 60 KB / 25 KB |
+| Lighthouse mobile, Home | Performance 99; LCP 1.81 s, CLS 0.001, TBT 0 ms | 90, 2.0 s, 0.05, 200 ms |
+| Lighthouse mobile, project page | Performance 100; CLS 0.012, TBT 0 ms | 95 |
+| GPU kernel against CPU spec (WebGL2, all formations and a blend) | max relative error below 0.2% | test tolerance |
+
+**What these numbers don't cover:**
+- **No GPU here.** This container has no GPU and its Chromium is 141. WebGPU renders nothing: Three r186 passes a texture-view `swizzle` that this Chromium rejects. The engine now catches that and steps down, which is how I found the problem. So the high tier, bloom and the WebGPU parity test are unverified here; that test skips itself when the browser falls back. CI installs Playwright's newer Chromium, where it may run.
+- **Software-rendered visuals.** Visual review used the medium tier under SwiftShader at about 1.6 frames per second.
+- **Lighthouse measures the poster path.** Lighthouse runs without a GPU, so it scores the poster page and never runs the engine. Frame rates and engine main-thread cost need real hardware (Phase 5).
+- **Engine headroom.** The engine has 2.5 KB of headroom. Nearly all of it is three.js and GSAP; the only big saving would be dropping ScrollTrigger, which the brief requires.
+
+**Deviations:** three decisions go beyond the plan. The Contact rings became a knot (note 6). The CPU simulation became its own chunk. Visitors with no usable GPU get the poster before the engine downloads (the brief's "low tier can't hold its frame rate" case, decided before any work is wasted).
 

@@ -29,6 +29,10 @@ npm run build           # production build: fails while any [EDIT] remains
 | `npm run lhci`          | Lighthouse CI against `dist/` with the budgets in BRIEF.md section 8     |
 | `npm run palette`       | contrast and colour-vision checks for the design tokens                  |
 
+## Graphics
+
+The world lives in `src/graphics/`. `docs/walkthrough.md` explains how it works in plain language. In dev and preview builds, `/dev/world` shows every formation; add `?tier=high|medium|low|poster` to force a tier, or open Stats for nerds in the footer.
+
 ## Editing content
 
 - Site facts: `src/data/site.json`

@@ -10,8 +10,12 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:4321',
     trace: 'retain-on-failure',
-    // Lets sandboxes with a preinstalled Chromium skip the browser download.
-    ...(process.env.PW_CHROMIUM_PATH && { launchOptions: { executablePath: process.env.PW_CHROMIUM_PATH } }),
+    launchOptions: {
+      // WebGPU in headless Chromium (software adapter): lets tests exercise the high tier where supported.
+      args: ['--enable-unsafe-webgpu'],
+      // Lets sandboxes with a preinstalled Chromium skip the browser download.
+      ...(process.env.PW_CHROMIUM_PATH && { executablePath: process.env.PW_CHROMIUM_PATH }),
+    },
   },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },

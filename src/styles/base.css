@@ -193,7 +193,7 @@ button {
   line-height: 1.5;
   letter-spacing: 0.04em;
   vertical-align: 0.2em;
-  color: var(--llm);
+  color: var(--llm-ink);
   white-space: nowrap;
 }
 
@@ -203,5 +203,31 @@ button {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Narrow screens: a window onto the world between blocks of text (PLAN.md 5).
+   The engine composes the formation into it and masks it there. */
+.world-window {
+  display: none;
+}
+
+@media (max-width: 899px), (max-aspect-ratio: 11/10) {
+  .world-window {
+    display: block;
+    height: 48svh;
+  }
+}
+
+/* One-time hero intro: the headline starts as a ghost, never at opacity 0, so it
+   still paints for LCP. If JavaScript never runs, it resolves after 3 s. */
+html.intro [data-world-intro] {
+  opacity: 0.12;
+  animation: intro-fallback 0s 3s forwards;
+}
+
+@keyframes intro-fallback {
+  to {
+    opacity: 1;
   }
 }

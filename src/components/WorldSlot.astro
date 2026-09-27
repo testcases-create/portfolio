@@ -1,16 +1,134 @@
 ---
 // The single persistent canvas slot. transition:persist keeps this element
-// (and the canvas the engine mounts in it in Phase 2) alive across navigation.
+// (and the canvas the engine mounts in it) alive across navigation, so the
+// world never re-initialises between pages. It is decorative: aria-hidden,
+// and everything it shows is also described in DOM text (#world-caption).
 ---
 
 <div id="world" transition:persist="world" aria-hidden="true"></div>
+<p id="world-caption" class="world-caption small muted" transition:persist="world-caption"></p>
 
-<style>
+<style is:global>
   #world {
     position: fixed;
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    contain: strict;
+    overflow: hidden;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: 100% 50%;
+  }
+
+  /* Project pages: a quiet header band that scrolls away with the page. */
+  html[data-world-mode='band'] #world {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: var(--band-total);
+  }
+
+  .world-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Poster tier: a still of the real scene. The image is only fetched when this rule applies. */
+  html[data-world-tier='poster'] #world {
+    background-image: url('/poster/world-dark.webp');
+  }
+
+  html[data-world-tier='poster'][data-theme='light'] #world {
+    background-image: url('/poster/world-light.webp');
+  }
+
+  @media (max-width: 899px), (max-aspect-ratio: 11/10) {
+    html[data-world-tier='poster'] #world {
+      background-image: url('/poster/world-dark-narrow.webp');
+      background-position: 50% 50%;
+    }
+
+    html[data-world-tier='poster'][data-theme='light'] #world {
+      background-image: url('/poster/world-light-narrow.webp');
+    }
+  }
+
+  html[data-world-tier='poster'][data-world-mode='band'] #world {
+    opacity: 0.6;
+  }
+
+  .world-labels {
+    position: absolute;
+    inset: 0;
+    font-family: var(--face-sans);
+    font-weight: 560;
+    font-variation-settings: 'wdth' 100;
+    color: var(--text);
+    white-space: pre;
+  }
+
+  .world-labels span {
+    position: absolute;
+    left: 0;
+    top: 0;
+    line-height: 1;
+    transition: opacity 0.3s var(--ease-out);
+  }
+
+  .world-labels span[data-state='next'] {
+    opacity: 0;
+  }
+
+  .world-labels span[data-state='now'] {
+    color: var(--llm-ink);
+  }
+
+  .world-caption {
+    position: fixed;
+    z-index: 1;
+    right: var(--gutter);
+    bottom: var(--space-4);
+    max-width: 30rem;
+    margin: 0;
+    text-align: right;
+  }
+
+  .world-caption:empty,
+  html[data-world-mode='band'] .world-caption {
+    display: none;
+  }
+
+  .world-caption[data-area]::before {
+    content: '';
+    display: inline-block;
+    width: 0.6em;
+    height: 0.6em;
+    margin-inline-end: 0.4em;
+    border-radius: 50%;
+    background: var(--area-colour);
+  }
+
+  .world-caption[data-area='sde'] {
+    --area-colour: var(--sde);
+  }
+
+  .world-caption[data-area='llm'] {
+    --area-colour: var(--llm);
+  }
+
+  .world-caption[data-area='ml'] {
+    --area-colour: var(--ml);
+  }
+
+  /* Narrow screens: sections carry their own captions (Phase 3); keep this one for screen readers only. */
+  @media (max-width: 899px), (max-aspect-ratio: 11/10) {
+    .world-caption {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
   }
 </style>

@@ -13,7 +13,7 @@ const { links } = site;
 
 <Base title={strip(site.name)} description={site.positioning} formation="data">
   <section class="hero" aria-labelledby="hero-name">
-    <h1 id="hero-name">
+    <h1 id="hero-name" data-world-intro>
       <Edit text={site.name} />
     </h1>
     <p class="role">
@@ -45,6 +45,7 @@ const { links } = site;
     <p class="small muted">
       <Edit text={`${site.availability}. ${site.location}.`} />
     </p>
+    <div class="world-window" data-world-window aria-hidden="true"></div>
   </section>
 
   <section class="block" aria-labelledby="impact">
