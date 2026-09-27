@@ -1,0 +1,61 @@
+/* Design tokens (PLAN.md section 5). Colours are checked by scripts/palette.mjs;
+   src/styles/tokens.test.ts keeps this file and that script in sync. */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --ground: #1a1d23; /* Basalt */
+  --raised: #22262e; /* Slate */
+  --text: #ece8e1; /* Chalk */
+  --muted: #a7abb3; /* Pewter */
+  --line: #6b717c; /* Rule */
+  --sde: #4faaf5; /* Signal blue */
+  --llm: #e0b444; /* Lamp gold */
+  --ml: #ec7ba6; /* Stain rose */
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --ground: #eef0f2; /* Fog */
+  --raised: #ffffff; /* Paper */
+  --text: #1a1d23; /* Ink */
+  --muted: #4e545e; /* Graphite */
+  --line: #7c828c; /* Rule */
+  --sde: #2f63be;
+  --llm: #765a00;
+  --ml: #a8406f;
+}
+
+:root {
+  /* Families come from the Fonts API (astro.config.ts). */
+  --face-sans: var(--font-archivo), system-ui, sans-serif;
+  --face-serif: var(--font-source-serif), Georgia, serif;
+  --face-code: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Type scale */
+  --step-display: clamp(2.9rem, 1.2rem + 6.4vw, 6.25rem);
+  --step-title: clamp(2.25rem, 1.5rem + 2.6vw, 3.5rem);
+  --step-section: clamp(1.75rem, 1.2rem + 1.8vw, 2.5rem);
+  --step-sub: 1.5625rem;
+  --step-lead: 1.25rem;
+  --step-prose: 1.125rem;
+  --step-ui: 1rem;
+  --step-small: 0.875rem;
+  --step-metric: 2.5rem;
+  --measure: 62ch;
+
+  /* Space and layout */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4.5rem;
+  --space-9: 7rem;
+  --gutter: clamp(1rem, 0.5rem + 2.2vw, 2.5rem);
+  --max-width: 90rem;
+  --radius-control: 2px;
+  --focus: 2px solid var(--text);
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+}

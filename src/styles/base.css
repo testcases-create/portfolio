@@ -1,0 +1,207 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: var(--ground);
+  color: var(--text);
+  font-family: var(--face-sans);
+  font-size: var(--step-ui);
+  line-height: 1.5;
+  font-variation-settings: 'wdth' 100;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 620;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--step-title);
+  line-height: 1.05;
+  font-variation-settings: 'wdth' 110;
+}
+
+h2 {
+  font-size: var(--step-section);
+  line-height: 1.1;
+  font-variation-settings: 'wdth' 108;
+}
+
+h3 {
+  font-size: var(--step-sub);
+  line-height: 1.2;
+  font-weight: 600;
+  font-variation-settings: 'wdth' 104;
+}
+
+p {
+  margin: 0;
+}
+
+.prose {
+  font-family: var(--face-serif);
+  font-size: var(--step-prose);
+  line-height: 1.65;
+  max-width: var(--measure);
+}
+
+.prose :is(h2, h3) {
+  font-family: var(--face-sans);
+  margin-block: var(--space-7) var(--space-3);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: var(--step-small);
+  line-height: 1.45;
+}
+
+a {
+  color: inherit;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+:focus-visible {
+  outline: var(--focus);
+  outline-offset: 3px;
+}
+
+code,
+pre {
+  font-family: var(--face-code);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: transparent;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button:hover {
+  border-color: var(--text);
+}
+
+.button[data-primary] {
+  background: var(--text);
+  color: var(--ground);
+  border-color: var(--text);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--gutter);
+  top: var(--space-2);
+  z-index: 10;
+  padding: var(--space-2) var(--space-4);
+  background: var(--text);
+  color: var(--ground);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+.wrap {
+  width: 100%;
+  max-width: var(--max-width);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* Area tags: a colour dot always paired with its text label. */
+.area {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  font-size: var(--step-small);
+}
+
+.area::before {
+  content: '';
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  background: var(--area-colour);
+}
+
+.area[data-area='sde'] {
+  --area-colour: var(--sde);
+}
+
+.area[data-area='llm'] {
+  --area-colour: var(--llm);
+}
+
+.area[data-area='ml'] {
+  --area-colour: var(--ml);
+}
+
+/* Placeholder badges (src/components/Edit.astro, EditProse.astro). */
+.edit-badge {
+  display: inline-block;
+  margin-inline-start: 0.35em;
+  padding: 0 0.35em;
+  border: 1px dashed currentColor;
+  border-radius: var(--radius-control);
+  font-family: var(--face-sans);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-variation-settings: 'wdth' 100;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  vertical-align: 0.2em;
+  color: var(--llm);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

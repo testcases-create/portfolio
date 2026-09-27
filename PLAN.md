@@ -1,6 +1,6 @@
 # Phase 0: plan and prototype
 
-Status: plan proposed, prototype built and tested. Waiting for your go-ahead before Phase 1.
+Status: Phase 0 approved. Phase 1 (foundation) complete; see section 11. Waiting for your go-ahead before Phase 2.
 
 ## 1. The brief in five lines
 
@@ -458,3 +458,34 @@ python3 -m http.server 4321
 | `?n=262144` | override the particle count, for headroom tests |
 
 On the page, the quality menu switches tiers live, Stats shows the nerd panel, and the theme and pause buttons work. Scroll through the page to scrub between formations. The page needs internet access for Three.js, GSAP and the fonts, which it loads from jsDelivr (prototype only; production self-hosts them).
+
+## 11. Phase 1 results (27 September 2026)
+
+**Stack re-check.** Every version in section 2 is still current on npm: astro 7.3.5, @astrojs/check 0.9.10 (TypeScript peer still `^5 || ^6`, so TypeScript is pinned to 6.0.3), three 0.186.1, gsap 3.15.0, vitest 5.0.2, @playwright/test 1.63.0, @axe-core/playwright 4.13.0, @lhci/cli 0.15.1, eslint 10.11.0, typescript-eslint 8.70.1, prettier 3.9.9, prettier-plugin-astro 1.1.0, shiki 4.4.3, both Fontsource packages 5.3.0. Two notes: Astro 7's `astro preview` keeps a lock file, so Playwright starts it with `--ignore-lock`; `npm audit` reports 10 advisories, all in @lhci/cli's dev-only dependency tree (inquirer, uuid), none in anything shipped.
+
+**Built.**
+- Astro 7 static site, TypeScript `strictest`, `ClientRouter`, and one persistent `#world` slot (`transition:persist`, `aria-hidden`).
+- Page to world contract: `<body data-world-formation data-world-mode>`, mirrored to `data-world-*` on `<html>` by boot code on load and after every swap.
+- Theme (dark default, remembered, set before first paint) and a Pause control with `aria-pressed`, both in the header and both remembered through guarded storage.
+- Content collections: `projects` (`*/index.md`), `architectures` (sibling `architecture.yaml`, linked by `reference()`), `experience`; `site.json` validated by zod at build time. Architecture validation rejects unknown nodes, duplicate ids, and flow steps with no edge.
+- Placeholder system: `Edit.astro` and `EditProse.astro` render `[EDIT]` as badges; `MediaFrame.astro` renders captioned empty frames. `npm run check-content` lists every tag with file:line, every empty frame and every evidence warning. Production builds fail from both `npm run build` and a bare `astro build` (an integration hook); `ALLOW_PLACEHOLDERS=1` lets previews through.
+- Design tokens from section 5, with a unit test that keeps `tokens.css` identical to `scripts/palette.mjs` and re-runs its contrast and colour-vision checks.
+- Fonts through the Fonts API local provider with generated metric fallbacks; only Archivo is preloaded.
+- Tooling: ESLint (flat, strict), Prettier, `astro check`, Vitest, Playwright with axe (desktop 1440 and mobile 390), Lighthouse CI, `scripts/budgets.ts`, GitHub Actions, `netlify.toml` (strict production, preview contexts with placeholders allowed, security headers, immutable `/_astro/*`).
+- One seed project (the inference gateway) and one role, only to exercise the schemas end to end. The other six projects and all page design arrive in Phase 3.
+
+**Measured.**
+
+| What | Result | Budget |
+|---|---|---|
+| Initial JS, every page (router + boot + theme script, gzip -9; KB = 1,000 bytes) | 6.4 KB | 50 KB (leaves about 43.6 KB; GSAP core + SplitText measured 30.7 KB in Phase 0) |
+| Archivo subset to width 100–125, weight 400–700 | 90.1 KB → 57.0 KB | preloaded fonts ≤ 60 KB |
+| Source Serif 4 subset to weight 400–700 (roman / italic) | 50.8 → 35.0 KB / 51.5 → 35.6 KB | not preloaded |
+| CSS, gzip | 1.9 KB | — |
+| Lighthouse mobile, Home (median of 3, local Chromium 141) | Performance 100, Accessibility 100, Best Practices 100, SEO 100; LCP 1.51 s, CLS 0.001, TBT 0 ms | LCP ≤ 2.0 s, CLS ≤ 0.05, TBT ≤ 200 ms |
+| Lighthouse mobile, project page | 100 / 100 / 100 / 100; LCP 1.66 s, CLS 0.026 | as above |
+
+These are foundation numbers with no graphics loaded; Phase 5 re-measures the finished pages.
+
+**Deviations from the plan.** Architecture data is a separate `architectures` collection joined by `reference()`, which is how a sibling `architecture.yaml` becomes validated build input. Links are strings that may end in ` [EDIT]` rather than `z.url()`, so invented URLs can carry the tag; `strip()` removes it for `href`s. The Content-Security-Policy still allows inline scripts (the pre-paint theme script and Astro's inlined boot module); Phase 5 replaces that with hashes.
+

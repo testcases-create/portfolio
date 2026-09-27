@@ -1,0 +1,11 @@
+dist
+.astro
+node_modules
+prototype
+package-lock.json
+src/assets/fonts
+playwright-report
+test-results
+.lighthouseci
+BRIEF.md
+PLAN.md

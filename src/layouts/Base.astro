@@ -1,0 +1,73 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import { Font } from 'astro:assets';
+import SiteHeader from '../components/SiteHeader.astro';
+import WorldSlot from '../components/WorldSlot.astro';
+import { strip } from '../lib/placeholders';
+import { site } from '../lib/site';
+import type { Formation, Mode } from '../lib/world-config';
+import '../styles/tokens.css';
+import '../styles/base.css';
+import '../styles/print.css';
+
+interface Props {
+  title: string;
+  description: string;
+  formation?: Formation;
+  mode?: Mode;
+  /** Role lenses point their canonical URL at Home. */
+  canonicalPath?: string;
+}
+const { title, description, formation = 'data', mode = 'full', canonicalPath } = Astro.props;
+const canonical = new URL(canonicalPath ?? Astro.url.pathname, Astro.site);
+const fullTitle = title === strip(site.name) ? title : `${title} · ${strip(site.name)}`;
+---
+
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{strip(fullTitle)}</title>
+    <meta name="description" content={strip(description)} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:title" content={strip(fullTitle)} />
+    <meta property="og:description" content={strip(description)} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta name="color-scheme" content="dark light" />
+    <Font cssVariable="--font-archivo" preload />
+    <Font cssVariable="--font-source-serif" />
+    <script is:inline>
+      // Set the remembered theme before first paint so there is no flash.
+      try {
+        if (localStorage.getItem('pref:theme') === 'light') document.documentElement.dataset.theme = 'light';
+      } catch {
+        /* storage blocked: keep the default dark theme */
+      }
+    </script>
+    <ClientRouter />
+  </head>
+  <body data-world-formation={formation} data-world-mode={mode}>
+    <a class="skip-link" href="#main">
+      Skip to content
+    </a>
+    <WorldSlot />
+    <SiteHeader />
+    <main id="main" class="wrap">
+      <slot />
+    </main>
+    <script>
+      import '../scripts/boot';
+    </script>
+  </body>
+</html>
+
+<style>
+  main {
+    position: relative;
+    z-index: 1;
+    padding-block: var(--space-7) var(--space-9);
+  }
+</style>

@@ -1,0 +1,12 @@
+nodes:
+  - { id: client, label: Client apps, kind: client }
+  - { id: gateway, label: Inference gateway, kind: gateway }
+  - { id: cache, label: Response cache, kind: cache }
+  - { id: model, label: Model servers, kind: model }
+edges:
+  - { from: client, to: gateway, label: gRPC }
+  - { from: gateway, to: cache }
+  - { from: gateway, to: model, label: batched }
+flows:
+  - { name: Cache hit, path: [client, gateway, cache] }
+  - { name: Cache miss, path: [client, gateway, model] }

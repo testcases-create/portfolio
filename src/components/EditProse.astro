@@ -1,0 +1,11 @@
+---
+// Wraps rendered Markdown and turns each [EDIT] tag in it into the same badge
+// that Edit.astro renders for frontmatter fields.
+import { EDIT_TAG } from '../lib/placeholders';
+
+const html = await Astro.slots.render('default');
+const badge =
+  '<span class="edit-badge" title="Placeholder: replace before launch (CONTENT_GUIDE.md)">EDIT</span>';
+---
+
+<Fragment set:html={html.replaceAll(` ${EDIT_TAG}`, EDIT_TAG).replaceAll(EDIT_TAG, badge)} />

@@ -5,12 +5,24 @@
 
 export const palette = {
   dark: {
-    ground: '#1A1D23', raised: '#22262E', text: '#ECE8E1', muted: '#A7ABB3', line: '#6B717C',
-    sde: '#4FAAF5', llm: '#E0B444', ml: '#EC7BA6',
+    ground: '#1A1D23',
+    raised: '#22262E',
+    text: '#ECE8E1',
+    muted: '#A7ABB3',
+    line: '#6B717C',
+    sde: '#4FAAF5',
+    llm: '#E0B444',
+    ml: '#EC7BA6',
   },
   light: {
-    ground: '#EEF0F2', raised: '#FFFFFF', text: '#1A1D23', muted: '#4E545E', line: '#7C828C',
-    sde: '#2F63BE', llm: '#765A00', ml: '#A8406F',
+    ground: '#EEF0F2',
+    raised: '#FFFFFF',
+    text: '#1A1D23',
+    muted: '#4E545E',
+    line: '#7C828C',
+    sde: '#2F63BE',
+    llm: '#765A00',
+    ml: '#A8406F',
   },
 };
 
@@ -65,8 +77,14 @@ export function check(p = palette) {
       }
     }
     for (const [name, m] of Object.entries(cvd)) {
-      const pairs = [['sde', 'llm'], ['sde', 'ml'], ['llm', 'ml']].map(([a, b]) => distance(t[a], t[b], m));
-      rows.push(`${theme.padEnd(5)} roles ${name.padEnd(6)} ΔE sde/llm ${pairs[0].toFixed(3)}  sde/ml ${pairs[1].toFixed(3)}  llm/ml ${pairs[2].toFixed(3)}`);
+      const pairs = [
+        ['sde', 'llm'],
+        ['sde', 'ml'],
+        ['llm', 'ml'],
+      ].map(([a, b]) => distance(t[a], t[b], m));
+      rows.push(
+        `${theme.padEnd(5)} roles ${name.padEnd(6)} ΔE sde/llm ${pairs[0].toFixed(3)}  sde/ml ${pairs[1].toFixed(3)}  llm/ml ${pairs[2].toFixed(3)}`,
+      );
       if (Math.min(...pairs) < MIN_ROLE_DISTANCE) failures.push(`${theme} role hues too close under ${name}`);
     }
   }

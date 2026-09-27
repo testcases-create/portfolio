@@ -1,0 +1,47 @@
+{
+  "name": "Rhea Sander [EDIT]",
+  "roleLine": "Software engineer for ML systems and LLM agents",
+  "roleLines": {
+    "sde": "Software engineer who builds low-latency services and the systems around them",
+    "llm": "LLM engineer who ships agents with evaluation, guardrails and cost controls",
+    "ml": "ML engineer who trains models and runs them in production"
+  },
+  "current": { "title": "ML platform engineer [EDIT]", "company": "Halden Systems [EDIT]" },
+  "yearsExperience": "4 years [EDIT]",
+  "positioning": "I build ML systems and LLM agents end to end, from the model to the interface people use, and run them in production. [EDIT]",
+  "location": "Based in Bengaluru, open to relocation or remote [EDIT]",
+  "availability": "Open to roles from January 2027 [EDIT]",
+  "siteUrl": "https://rhea-sander.example.com [EDIT]",
+  "links": {
+    "email": "rhea.sander@example.com [EDIT]",
+    "github": "https://github.com/example [EDIT]",
+    "linkedin": "https://www.linkedin.com/in/example [EDIT]",
+    "leetcode": "https://leetcode.com/u/example [EDIT]",
+    "blog": "https://example.com [EDIT]"
+  },
+  "impact": [
+    "I cut inference p95 latency from 820 ms to 190 ms at 500 requests per second, measured with k6 on the same hardware, by adding dynamic batching and a response cache to the gateway. [EDIT]",
+    "I raised a support agent's task success from 61% to 84% on a 400-task labelled eval set by adding retrieval over resolved tickets and tool-call guardrails. [EDIT]",
+    "I reduced escaped visual defects by 38% over a quarter of line data by training and shipping a segmentation model with drift monitoring. [EDIT]"
+  ],
+  "skills": {
+    "sde": [{ "name": "Go services under load", "evidence": ["inference-gateway"] }],
+    "llm": [],
+    "ml": [],
+    "mlops": [{ "name": "Model serving and rollback", "evidence": ["inference-gateway", "halden-systems"] }]
+  },
+  "education": [
+    {
+      "degree": "B.Tech in Computer Science [EDIT]",
+      "school": "Institution name [EDIT]",
+      "year": "2021 [EDIT]"
+    }
+  ],
+  "awards": [
+    {
+      "name": "Hackathon award [EDIT]",
+      "detail": "What was built and what the judges measured [EDIT]",
+      "year": "2020 [EDIT]"
+    }
+  ]
+}

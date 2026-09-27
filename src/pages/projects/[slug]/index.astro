@@ -1,0 +1,83 @@
+---
+// Phase 1 stub of the deep dive: proves the content pipeline end to end
+// (frontmatter, architecture reference, media frame, prose). Phase 3 builds the page.
+import type { GetStaticPaths } from 'astro';
+import { getCollection, getEntry, render } from 'astro:content';
+import Base from '../../../layouts/Base.astro';
+import Edit from '../../../components/Edit.astro';
+import MediaFrame from '../../../components/MediaFrame.astro';
+import EditProse from '../../../components/EditProse.astro';
+
+export const getStaticPaths = (async () => {
+  const projects = await getCollection('projects');
+  return projects.map((project) => ({ params: { slug: project.id }, props: { project } }));
+}) satisfies GetStaticPaths;
+
+const { project } = Astro.props;
+const { data } = project;
+const arch = await getEntry(data.architecture);
+const { Content } = await render(project);
+---
+
+<Base title={data.title} description={data.summary} formation={data.areas[0] ?? 'data'} mode="band">
+  <article>
+    <h1>
+      <Edit text={data.title} />
+    </h1>
+    <p class="prose lead">
+      <Edit text={data.summary} />
+    </p>
+    <dl class="metrics">
+      {data.metrics.map((m) => (
+        <div>
+          <dt>
+            <Edit text={m.label} />
+          </dt>
+          <dd class="figure">
+            <Edit text={m.value} />
+          </dd>
+          <dd class="small muted">
+            <Edit text={m.measuredBy} />
+          </dd>
+        </div>
+      ))}
+    </dl>
+    <MediaFrame media={data.cover} />
+    <p class="small muted">
+      Architecture: {arch.data.nodes.length} components and {arch.data.flows.length} request flows.
+    </p>
+    <div class="prose body">
+      <EditProse>
+        <Content />
+      </EditProse>
+    </div>
+  </article>
+</Base>
+
+<style>
+  article {
+    display: grid;
+    gap: var(--space-5);
+    max-width: 52rem;
+  }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: var(--space-5);
+    margin: 0;
+    padding: var(--space-5);
+    background: var(--raised);
+  }
+
+  dd {
+    margin: 0;
+  }
+
+  .figure {
+    font-size: var(--step-metric);
+    line-height: 1;
+    font-variation-settings: 'wdth' 112;
+    font-variant-numeric: tabular-nums;
+  }
+</style>
