@@ -92,18 +92,18 @@ tests/e2e/          Playwright + axe, run against the built site
 All sizes are gzipped, where KB means 1,000 bytes. `npm run budgets` measures
 every built page and every lazy feature, and CI fails on any overrun.
 
-| What                                                    | Measured                                                   | Budget                  |
-| ------------------------------------------------------- | ---------------------------------------------------------- | ----------------------- |
-| JavaScript before idle, most pages                      | 9.3–10.4 KB                                                | 50 KB                   |
-| JavaScript before idle, Home (with the intro)           | 39.9 KB                                                    | 50 KB                   |
-| Graphics engine, after first paint                      | 303.9 KB                                                   | 320 KB                  |
-| Architecture explorer, on demand                        | 3.7 KB                                                     | 25 KB                   |
-| Lab: Train a network / Watch attention / Scale a system | 7.6 / 5.4 (+ 8.8 KB data) / 6.9 KB                         | 35 / 25 (+ 120) / 25 KB |
-| Preloaded fonts                                         | 57.0 KB                                                    | 60 KB                   |
-| Lighthouse mobile, Home                                 | 99–100; LCP 1.66–1.96 s, CLS 0.001, TBT 0 ms               | 90; 2.0 s, 0.05, 200 ms |
-| Lighthouse mobile, other pages                          | 99–100 performance; 100 accessibility, best practices, SEO | 95                      |
-| GPU training kernels against the CPU spec               | largest difference 1.2 × 10⁻⁷ after 40 steps               | test < 10⁻⁴             |
-| Low tier CPU simulation step, 4,096 particles           | 4.0 ms on the build machine                                | test < 8 ms             |
+| What                                                    | Measured                                                   | Budget                     |
+| ------------------------------------------------------- | ---------------------------------------------------------- | -------------------------- |
+| JavaScript before idle, most pages                      | 9.3–10.4 KB                                                | 50 KB                      |
+| JavaScript before idle, Home (with the intro)           | 39.9 KB                                                    | 50 KB                      |
+| Graphics engine, after first paint                      | 303.9 KB                                                   | 320 KB                     |
+| Architecture explorer, on demand                        | 3.7 KB                                                     | 25 KB                      |
+| Lab: Train a network / Watch attention / Scale a system | 7.6 / 5.4 (+ 8.8 KB data) / 6.9 KB                         | 35 / 25 (+ 120) / 25 KB    |
+| Preloaded fonts                                         | 57.0 KB                                                    | 60 KB                      |
+| Lighthouse mobile, Home                                 | 99–100; LCP 1.66–1.96 s, CLS 0.001, TBT 0 ms               | 90; 2.0 s, 0.05, 200 ms    |
+| Lighthouse mobile, other pages                          | 99–100 performance; 100 accessibility, best practices, SEO | 95                         |
+| GPU training kernels against the CPU spec               | largest difference 1.2 × 10⁻⁷ after 40 steps               | test < 10⁻⁴                |
+| Low tier CPU simulation step, 4,096 particles           | 4.0 ms on the build machine                                | test < 16.7 ms (one frame) |
 
 Frame rates on real devices are the one measurement still to take. The build
 machine has no GPU, so it renders in software at 2–7 fps. Run

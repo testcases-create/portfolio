@@ -753,7 +753,7 @@ for the serif font. That made no difference, so I reverted it.
   and the phone stills framed the formation smaller. `capture-poster` now
   takes `POSTER_TIER=high`, for a machine with a GPU.
 - **CPU timing moved to a test.** Vitest 5 changed its benchmark API, so the
-  CPU simulation timing is a test with a loose assertion (under 8 ms), and
+  CPU simulation timing is a test that fails past one frame (16.7 ms; CI measured 8.6 ms under a parallel test run), and
   `npm run bench` runs it.
 
 **The ten `[EDIT]` items to fill first** (also at the top of
