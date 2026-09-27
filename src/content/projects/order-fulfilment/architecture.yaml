@@ -1,0 +1,22 @@
+nodes:
+  - { id: clients, label: Web and mobile apps, kind: client }
+  - { id: gateway, label: API gateway, kind: gateway }
+  - { id: orders, label: Order service, kind: service }
+  - { id: ordersdb, label: Orders DB and outbox, kind: store }
+  - { id: bus, label: Kafka, kind: queue }
+  - { id: payments, label: Payment service, kind: service }
+  - { id: inventory, label: Inventory service, kind: service }
+  - { id: fulfilment, label: Fulfilment service, kind: service }
+edges:
+  - { from: clients, to: gateway }
+  - { from: gateway, to: orders }
+  - { from: orders, to: ordersdb }
+  - { from: ordersdb, to: bus, label: outbox relay }
+  - { from: bus, to: payments }
+  - { from: bus, to: inventory }
+  - { from: bus, to: fulfilment }
+flows:
+  - { name: Place an order, path: [clients, gateway, orders, ordersdb] }
+  - { name: Charge, path: [ordersdb, bus, payments] }
+  - { name: Reserve stock, path: [ordersdb, bus, inventory] }
+  - { name: Ship, path: [ordersdb, bus, fulfilment] }

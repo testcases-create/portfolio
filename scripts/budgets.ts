@@ -13,7 +13,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
-export const BUDGETS = { initialJs: 50_000, engineJs: 300_000, preloadedFonts: 60_000 };
+// engineJs: 320 KB since Phase 3 (PLAN.md section 14): the engine loads after first paint.
+export const BUDGETS = { initialJs: 50_000, engineJs: 320_000, preloadedFonts: 60_000 };
 
 const gz = (s: string | Buffer) => gzipSync(s, { level: 9 }).length;
 

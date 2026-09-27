@@ -25,13 +25,14 @@ const contentGate = (): AstroIntegration => ({
   },
 });
 
-// The world test page exists in dev and preview builds only.
+// The world test page and the social-card templates exist in dev and preview builds only.
 const devPages = (): AstroIntegration => ({
   name: 'dev-pages',
   hooks: {
     'astro:config:setup': ({ command, injectRoute }) => {
       if (command === 'dev' || process.env.ALLOW_PLACEHOLDERS === '1') {
         injectRoute({ pattern: '/dev/world', entrypoint: './src/dev/world.astro' });
+        injectRoute({ pattern: '/dev/og/[card]', entrypoint: './src/dev/og.astro' });
       }
     },
   },

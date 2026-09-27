@@ -29,6 +29,16 @@ npm run build           # production build: fails while any [EDIT] remains
 | `npm run lhci`          | Lighthouse CI against `dist/` with the budgets in BRIEF.md section 8     |
 | `npm run palette`       | contrast and colour-vision checks for the design tokens                  |
 
+## Generated files
+
+Run these against a preview server (`npm run build:preview && npx astro preview --port 4321`) and commit the output:
+
+| Command                  | Writes                                                        |
+| ------------------------ | ------------------------------------------------------------- |
+| `npm run og-images`      | `public/og/*.png`, the social cards for Home and each project |
+| `npm run resume-pdf`     | `public/resume.pdf` from `/resume`, and checks it is one page |
+| `npm run capture-poster` | `public/poster/*.webp`, the poster tier's stills              |
+
 ## Graphics
 
 The world lives in `src/graphics/`. `docs/walkthrough.md` explains how it works in plain language. In dev and preview builds, `/dev/world` shows every formation; add `?tier=high|medium|low|poster` to force a tier, or open Stats for nerds in the footer.

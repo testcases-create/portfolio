@@ -1,0 +1,34 @@
+---
+import Base from '../layouts/Base.astro';
+import Edit from '../components/Edit.astro';
+import { site } from '../lib/site';
+---
+
+<Base
+  title="About"
+  description="Who I am, how I got here, and what I'm looking for next."
+  formation="converge"
+>
+  <h1>About</h1>
+  <div class="prose story">
+    {site.about.map((p) => (
+      <p>
+        <Edit text={p} />
+      </p>
+    ))}
+  </div>
+  <p class="small muted">
+    <Edit text={`${site.availability}. ${site.location}.`} />
+  </p>
+  <p>
+    <a href="/contact/">Get in touch</a>
+  </p>
+</Base>
+
+<style>
+  .story {
+    display: grid;
+    gap: var(--space-4);
+    margin: var(--space-6) 0;
+  }
+</style>

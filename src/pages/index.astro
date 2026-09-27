@@ -1,131 +1,29 @@
 ---
-import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
-import Edit from '../components/Edit.astro';
+import HomeContent from '../components/HomeContent.astro';
 import { site } from '../lib/site';
 import { strip } from '../lib/placeholders';
 
-const featured = (await getCollection('projects', (p) => p.data.featured)).sort(
-  (a, b) => a.data.order - b.data.order,
-);
-const { links } = site;
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: strip(site.name),
+  jobTitle: strip(site.current.title),
+  worksFor: { '@type': 'Organization', name: strip(site.current.company) },
+  url: strip(site.siteUrl),
+  email: `mailto:${strip(site.links.email)}`,
+  sameAs: [site.links.github, site.links.linkedin, site.links.blog]
+    .filter(Boolean)
+    .map((l) => strip(l ?? '')),
+};
 ---
 
-<Base title={strip(site.name)} description={site.positioning} formation="data">
-  <section class="hero" aria-labelledby="hero-name">
-    <h1 id="hero-name" data-world-intro>
-      <Edit text={site.name} />
-    </h1>
-    <p class="role">
-      <Edit text={site.roleLine} />
-    </p>
-    <p class="muted">
-      <Edit text={`${site.current.title} at ${site.current.company}`} />
-    </p>
-    <p class="prose">
-      <Edit text={site.positioning} />
-    </p>
-    <ul class="actions">
-      <li>
-        <a class="button" data-primary href={strip(links.github)}>
-          GitHub
-        </a>
-      </li>
-      <li>
-        <a class="button" href={strip(links.linkedin)}>
-          LinkedIn
-        </a>
-      </li>
-      <li>
-        <a class="button" href={`mailto:${strip(links.email)}`}>
-          Email
-        </a>
-      </li>
-    </ul>
-    <p class="small muted">
-      <Edit text={`${site.availability}. ${site.location}.`} />
-    </p>
-    <div class="world-window" data-world-window aria-hidden="true"></div>
-  </section>
-
-  <section class="block" aria-labelledby="impact">
-    <h2 id="impact">Impact</h2>
-    <ul class="prose impact">
-      {site.impact.map((line) => (
-        <li>
-          <Edit text={line} />
-        </li>
-      ))}
-    </ul>
-  </section>
-
-  <section class="block" aria-labelledby="work">
-    <h2 id="work">Selected work</h2>
-    <ul class="rows">
-      {featured.map(({ id, data }) => (
-        <li>
-          <h3>
-            <a href={`/projects/${id}/`}>
-              <Edit text={data.title} />
-            </a>
-          </h3>
-          <p class="prose">
-            <Edit text={data.summary} />
-          </p>
-        </li>
-      ))}
-    </ul>
-  </section>
+<Base
+  title={strip(site.name)}
+  description={site.positioning}
+  formation="data"
+  ogImage="/og/home.png"
+  jsonLd={jsonLd}
+>
+  <HomeContent />
 </Base>
-
-<style>
-  .hero {
-    display: grid;
-    gap: var(--space-4);
-    max-width: 44rem;
-  }
-
-  h1 {
-    font-size: var(--step-display);
-    line-height: 0.98;
-    font-variation-settings: 'wdth' 116;
-  }
-
-  .role {
-    font-size: var(--step-lead);
-    line-height: 1.4;
-    font-weight: 520;
-  }
-
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    margin: var(--space-2) 0 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .block {
-    margin-top: var(--space-9);
-    max-width: 44rem;
-  }
-
-  .impact,
-  .rows {
-    display: grid;
-    gap: var(--space-4);
-    margin: var(--space-5) 0 0;
-    padding-inline-start: 1.1em;
-  }
-
-  .rows {
-    list-style: none;
-    padding: 0;
-    gap: var(--space-6);
-  }
-
-  .rows h3 {
-    margin-bottom: var(--space-2);
-  }
-</style>

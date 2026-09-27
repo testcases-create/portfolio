@@ -31,7 +31,7 @@ export interface SharedState {
   time: number;
   weights: number[];
   targetWeights: number[];
-  mode: 'full' | 'band';
+  mode: 'full' | 'band' | 'off';
   /** Pointer in [-1, 1]², eased, for parallax. */
   pointer: { x: number; y: number; tx: number; ty: number; until: number };
   camera: { azimuth: number; elevation: number; distance: number; target: [number, number, number] } | null;
@@ -198,6 +198,12 @@ export async function createWorld(
   }
 
   function compose(): { spanX: number; spanY: number } {
+    if (state.mode === 'off') {
+      // Presentation mode hides the world; CSS removes it and the observer pauses the loop.
+      R.maskTop.value = 1;
+      R.maskBottom.value = 0;
+      return { spanX: 1, spanY: 1 };
+    }
     if (size.wide) return { spanX: REGION[1] - REGION[0], spanY: 1 };
     if (state.mode === 'band') {
       // The band sits behind the header too: compose below it and keep the header clear.

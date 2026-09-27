@@ -1,0 +1,94 @@
+---
+// An engineering decision: question, options, choice, trade-off, evidence.
+// A native <details>, so it opens with a keyboard and works without JavaScript.
+import Edit from './Edit.astro';
+
+interface Props {
+  decision: { question: string; options: string[]; chose: string; tradeoff: string; evidence: string };
+  open?: boolean;
+}
+const { decision: d, open = false } = Astro.props;
+---
+
+<details class="decision" open={open}>
+  <summary>
+    <Edit text={d.question} />
+  </summary>
+  <dl>
+    <div>
+      <dt>Options</dt>
+      <dd>
+        <ul>
+          {d.options.map((o) => (
+            <li>
+              <Edit text={o} />
+            </li>
+          ))}
+        </ul>
+      </dd>
+    </div>
+    <div>
+      <dt>Chose</dt>
+      <dd>
+        <Edit text={d.chose} />
+      </dd>
+    </div>
+    <div>
+      <dt>Trade-off</dt>
+      <dd>
+        <Edit text={d.tradeoff} />
+      </dd>
+    </div>
+    <div>
+      <dt>Evidence</dt>
+      <dd>
+        <Edit text={d.evidence} />
+      </dd>
+    </div>
+  </dl>
+</details>
+
+<style>
+  .decision {
+    border-top: 1px solid var(--line);
+    padding-block: var(--space-4);
+  }
+
+  .decision:last-of-type {
+    border-bottom: 1px solid var(--line);
+  }
+
+  summary {
+    cursor: pointer;
+    font-size: var(--step-lead);
+    font-weight: 560;
+    line-height: 1.35;
+    list-style-position: outside;
+    margin-inline-start: 1.1em;
+  }
+
+  dl {
+    display: grid;
+    gap: var(--space-3);
+    margin: var(--space-4) 0 0;
+    font-family: var(--face-serif);
+    font-size: var(--step-prose);
+    line-height: 1.6;
+    max-width: var(--measure);
+  }
+
+  dt {
+    font-family: var(--face-sans);
+    font-size: var(--step-small);
+    color: var(--muted);
+  }
+
+  dd {
+    margin: 0;
+  }
+
+  ul {
+    margin: 0;
+    padding-inline-start: 1.1em;
+  }
+</style>

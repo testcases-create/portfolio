@@ -1,5 +1,8 @@
 @media print {
-  :root {
+  /* html:root outranks the theme blocks in tokens.css whatever the bundle order. */
+  html:root,
+  html:root[data-theme] {
+    color-scheme: light;
     --ground: #fff;
     --raised: #fff;
     --text: #000;
@@ -8,14 +11,24 @@
   }
 
   #world,
-  .site-header nav,
-  .world-controls,
+  .world-caption,
+  .site-header,
+  .site-footer,
+  .band-top,
+  .world-window,
+  .edit-badge,
   .skip-link {
     display: none !important;
   }
 
-  a[href^='http']::after {
-    content: ' (' attr(href) ')';
-    font-size: 0.8em;
+  html,
+  body {
+    color-scheme: light;
+    background: #fff;
+    color: #000;
+  }
+
+  main {
+    padding: 0 !important;
   }
 }

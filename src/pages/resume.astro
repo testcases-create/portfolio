@@ -1,0 +1,233 @@
+---
+// The résumé, rendered from the same data as the site, with a print
+// stylesheet that fits one A4 or Letter page. scripts/resume-pdf.ts prints
+// this page to public/resume.pdf.
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Edit from '../components/Edit.astro';
+import { month } from '../lib/dates';
+import { allProjects } from '../lib/projects';
+import { strip } from '../lib/placeholders';
+import { site } from '../lib/site';
+
+const roles = (await getCollection('experience')).sort((a, b) => b.data.start.localeCompare(a.data.start));
+const projects = (await allProjects()).filter((p) => p.data.featured).slice(0, 4);
+const skills = [
+  ['SDE', site.skills.sde],
+  ['LLM', site.skills.llm],
+  ['AI/ML', site.skills.ml],
+  ['MLOps', site.skills.mlops],
+] as const;
+const { links } = site;
+---
+
+<Base title="Résumé" description="A one-page résumé, rendered from the same data as this site.">
+  <div class="resume">
+    <header class="head">
+      <h1>
+        <Edit text={site.name} />
+      </h1>
+      <p class="role">
+        <Edit text={site.roleLine} />
+      </p>
+      <p class="contact small">
+        <a href={`mailto:${strip(links.email)}`}>{strip(links.email)}</a>
+        {' · '}
+        <a href={strip(links.linkedin)}>{strip(links.linkedin).replace(/^https?:\/\/(www\.)?/, '')}</a>
+        {' · '}
+        <a href={strip(links.github)}>{strip(links.github).replace(/^https?:\/\//, '')}</a>
+        {' · '}
+        <Edit text={site.location} />
+      </p>
+      <p class="screen-only">
+        <a class="button" href="/resume.pdf" download>
+          Download PDF
+        </a>
+      </p>
+    </header>
+
+    <section aria-labelledby="r-summary">
+      <h2 id="r-summary">Summary</h2>
+      <p>
+        <Edit text={site.positioning} />
+      </p>
+    </section>
+
+    <section aria-labelledby="r-experience">
+      <h2 id="r-experience">Experience</h2>
+      {roles.map(({ data: r }) => (
+        <div class="entry">
+          <p class="entry-head">
+            <strong>
+              <Edit text={r.title} />
+              {', '}
+              <Edit text={r.company} />
+            </strong>
+            <span class="dates">
+              {month(r.start)} to {month(r.end)}
+            </span>
+          </p>
+          <ul>
+            {r.highlights.map((h) => (
+              <li>
+                <Edit text={h} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </section>
+
+    <section aria-labelledby="r-projects">
+      <h2 id="r-projects">Selected projects</h2>
+      <ul>
+        {projects.map((p) => (
+          <li>
+            <strong>{p.data.name}:</strong> <Edit text={p.data.title} />
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section aria-labelledby="r-skills">
+      <h2 id="r-skills">Skills</h2>
+      <dl class="skills">
+        {skills.map(([label, list]) => (
+          <div>
+            <dt>{label}</dt>
+            <dd>{list.map((s) => s.name).join('; ')}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+
+    <section aria-labelledby="r-education">
+      <h2 id="r-education">Education and awards</h2>
+      <ul>
+        {site.education.map((e) => (
+          <li>
+            <Edit text={`${e.degree}, ${e.school}, ${e.year}`} />
+          </li>
+        ))}
+        {site.awards.map((a) => (
+          <li>
+            <Edit text={`${a.name}, ${a.year}`} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .resume {
+    max-width: 46rem;
+    display: grid;
+    gap: var(--space-6);
+  }
+
+  .head {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .role {
+    font-size: var(--step-lead);
+  }
+
+  h2 {
+    font-size: var(--step-ui);
+    font-weight: 620;
+    padding-bottom: var(--space-1);
+    border-bottom: 1px solid var(--line);
+    margin-bottom: var(--space-3);
+  }
+
+  .entry + .entry {
+    margin-top: var(--space-4);
+  }
+
+  .entry-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  .dates {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  ul {
+    margin: var(--space-2) 0 0;
+    padding-inline-start: 1.1em;
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  .skills {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+  }
+
+  .skills div {
+    display: grid;
+    grid-template-columns: 5rem 1fr;
+    gap: var(--space-3);
+  }
+
+  .skills dt {
+    font-weight: 560;
+  }
+
+  .skills dd {
+    margin: 0;
+  }
+
+  @media print {
+    @page {
+      size: A4;
+      margin: 12mm 14mm;
+    }
+
+    .resume {
+      max-width: none;
+      gap: 3.5mm;
+      font-size: 9pt;
+      line-height: 1.35;
+    }
+
+    h1 {
+      font-size: 20pt;
+    }
+
+    .role {
+      font-size: 11pt;
+    }
+
+    h2 {
+      font-size: 10pt;
+      margin-bottom: 1.5mm;
+    }
+
+    ul {
+      margin-top: 1mm;
+      gap: 0.6mm;
+    }
+
+    .entry + .entry {
+      margin-top: 2mm;
+    }
+
+    .screen-only {
+      display: none;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+  }
+</style>

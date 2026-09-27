@@ -122,3 +122,80 @@ _Where:_ `src/graphics/choreography.ts`, `src/graphics/weights.ts`.
   first paint. three.js is 243 KB of that and GSAP 44 KB.
 - Lighthouse mobile: 99–100 performance, 0 ms blocking time.
 - 82 unit tests and 20 end-to-end tests, including the GPU-against-CPU check.
+
+## Phase 3: pages and content
+
+**One content model, checked at build time.** A project is a markdown file
+plus an `architecture.yaml`. The schema fixes the six section headings and
+their order (context and constraints, architecture, evaluation, deployment
+and operations, results, what I'd do next), caps the problem statement at
+240 characters, and allows at most two code snippets of 25 lines, each with a
+"why this matters" note. A project that drifts from the template fails the
+build instead of looking different. _Where:_ `src/lib/schemas.ts`,
+`src/content/projects/`.
+
+**Markdown and components interleaved.** The architecture diagram, the
+decision cards and the code snippets belong inside particular sections, but
+markdown can't hold components. The page renders the markdown once, splits
+the HTML at each `<h2 id>`, and slots the components into the right section.
+_Where:_ `src/lib/sections.ts`, `src/components/ProjectBody.astro`.
+
+**Architecture diagrams laid out by code.** Each node's layer is the longest
+path to it from an entry point; nodes in a layer are ordered by where their
+parents sit, which removes most crossings. It runs top to bottom because the
+page is a narrow text column, and the SVG is never scaled below its natural
+size (it scrolls instead), so labels stay readable. A test checks that no
+boxes overlap in any real project. The same YAML will feed the 3D explorer
+in Phase 4. _Where:_ `src/lib/diagram.ts`,
+`src/components/ArchitectureDiagram.astro`.
+
+**Skim or full, without breaking no-JS.** Skim keeps each section's first
+paragraph and its key table. The toggle is hidden until JavaScript runs, so
+without JavaScript you get the full page. The choice is remembered across
+projects. The table of contents highlights the section you're in, and a
+scroll-driven CSS animation draws the reading progress bar. _Where:_
+`src/scripts/deep-dive.ts`, `src/pages/projects/[slug]/index.astro`.
+
+**Filters are pages.** The area filter on the projects index is a set of
+links to static pages (`/projects/area/llm/` and so on), so it works without
+JavaScript and each filtered view has its own URL. _Where:_
+`src/components/ProjectList.astro`, `src/pages/projects/area/[area].astro`.
+
+**Role lenses share one canonical URL.** `/for/sde`, `/for/ml` and `/for/llm`
+reorder Home for one audience and start the world in that formation. Their
+canonical link points at `/`, so search engines see one page, not four
+near-duplicates. _Where:_ `src/pages/for/[role].astro`,
+`src/components/HomeContent.astro`.
+
+**Presentation mode.** Each project has a `/present` page for screen sharing
+in an interview: one section per slide, arrow keys, Space and Page keys to
+move, the slide number in the URL, and Escape to leave. Without JavaScript
+the slides simply stack. It sets the world to "off", and the boot script
+then doesn't download the engine at all. _Where:_
+`src/pages/projects/[slug]/present.astro`, `src/scripts/present.ts`.
+
+**One résumé source, two outputs.** `/resume` is an HTML page with a print
+stylesheet sized for A4. A script prints that page to `public/resume.pdf`
+with headless Chromium and fails if it runs past one page. The same trick
+makes the social cards: a dev-only page renders each card, and a script
+screenshots it to `public/og/`. _Where:_ `src/styles/print.css`,
+`scripts/resume-pdf.ts`, `scripts/og-images.ts`.
+
+**The hero text stays the LCP element.** On phones the poster appears in the
+gaps between blocks of text. In the hero's gap it became the largest paint,
+so Lighthouse counted a decorative image as the page's main content. The
+hero's gap now shows a glow in the three role colours, made with CSS
+gradients, which don't count as LCP candidates. Home's LCP is the hero text
+at 1.66 s. _Where:_ `src/components/WorldSlot.astro`.
+
+**Numbers to quote.**
+
+- Seven projects, 37 built pages, every one within budget: initial
+  JavaScript 8.9 KB on most pages and 39.5 KB on Home; engine 297.6 KB of
+  320 KB, loaded after first paint.
+- Lighthouse mobile: 99–100 performance and 100 for accessibility, best
+  practices and SEO on Home, the projects index, a deep dive, a presentation
+  and the résumé. Home LCP is 1.66 s, and total blocking time is under 25 ms
+  everywhere.
+- 110 unit tests and 71 end-to-end tests. axe runs on 12 page types in both
+  themes.

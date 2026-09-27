@@ -1,0 +1,19 @@
+nodes:
+  - { id: tickets, label: Support API, kind: client }
+  - { id: orchestrator, label: Agent orchestrator, kind: service }
+  - { id: retriever, label: Retriever, kind: service }
+  - { id: vectors, label: pgvector, kind: store }
+  - { id: llm, label: Language model, kind: model }
+  - { id: policy, label: Tool policies, kind: gateway }
+  - { id: tools, label: Order and billing APIs, kind: external }
+edges:
+  - { from: tickets, to: orchestrator }
+  - { from: orchestrator, to: retriever }
+  - { from: retriever, to: vectors }
+  - { from: orchestrator, to: llm, label: plan }
+  - { from: orchestrator, to: policy }
+  - { from: policy, to: tools, label: allowed calls }
+flows:
+  - { name: Retrieve context, path: [tickets, orchestrator, retriever, vectors] }
+  - { name: Plan a step, path: [tickets, orchestrator, llm] }
+  - { name: Call a tool, path: [tickets, orchestrator, policy, tools] }

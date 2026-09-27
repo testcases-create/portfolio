@@ -1,0 +1,364 @@
+---
+// Home, and the role lenses (/for/sde, /for/llm, /for/ml), which are Home with
+// a tailored role line, that area's projects first, filtered skills, and the
+// world opening on that area's formation.
+import { getCollection } from 'astro:content';
+import AreaTag from './AreaTag.astro';
+import Edit from './Edit.astro';
+import ProjectRow from './ProjectRow.astro';
+import { AREA_HEADING, AREA_LABEL, allProjects, featuredByArea } from '../lib/projects';
+import { strip } from '../lib/placeholders';
+import type { Area } from '../lib/schemas';
+import { site } from '../lib/site';
+import { month } from '../lib/dates';
+
+interface Props {
+  lens?: Area | undefined;
+}
+const { lens } = Astro.props;
+const groups = await featuredByArea(lens);
+const projects = await allProjects();
+const roles = (await getCollection('experience')).sort((a, b) => b.data.start.localeCompare(a.data.start));
+const projectName = new Map(projects.map((p) => [p.id, p.data.name]));
+const roleName = new Map(roles.map((r) => [r.id, strip(r.data.company)]));
+const skillGroups = (
+  [
+    ['sde', 'SDE'],
+    ['llm', 'LLM'],
+    ['ml', 'AI/ML'],
+    ['mlops', 'MLOps and infrastructure'],
+  ] as const
+).filter(([key]) => !lens || key === lens || (key === 'mlops' && lens !== 'sde'));
+const { links } = site;
+---
+
+<section class="hero" aria-labelledby="hero-name" data-world-formation={lens ?? 'data'}>
+  <h1 id="hero-name" data-world-intro>
+    <Edit text={site.name} />
+  </h1>
+  <p class="role">
+    <Edit text={lens ? site.roleLines[lens] : site.roleLine} />
+  </p>
+  <p class="current muted">
+    <Edit text={`${site.current.title} at ${site.current.company}`} />
+    {' · '}
+    <Edit text={site.yearsExperience} />
+  </p>
+  <p class="prose">
+    <Edit text={site.positioning} />
+  </p>
+  <ul class="actions">
+    <li>
+      <a class="button" data-primary href="/resume.pdf">
+        Résumé (PDF)
+      </a>
+    </li>
+    <li>
+      <a class="button" href={strip(links.github)}>
+        GitHub
+      </a>
+    </li>
+    <li>
+      <a class="button" href={strip(links.linkedin)}>
+        LinkedIn
+      </a>
+    </li>
+    <li>
+      <a class="button" href={`mailto:${strip(links.email)}`}>
+        Email
+      </a>
+    </li>
+  </ul>
+  <p class="small muted">
+    <Edit text={`${site.availability}. ${site.location}.`} />
+  </p>
+  <div class="world-window" data-world-window aria-hidden="true"></div>
+</section>
+
+<section class="block" aria-labelledby="impact">
+  <h2 id="impact">Impact</h2>
+  <ul class="prose impact">
+    {site.impact.map((line) => (
+      <li>
+        <Edit text={line} />
+      </li>
+    ))}
+  </ul>
+</section>
+
+{groups.map(({ area, projects: rows }) => (
+  <section class="block group" aria-labelledby={`work-${area}`} data-world-formation={area}>
+    <div class="world-window" data-world-window aria-hidden="true" />
+    <h2 id={`work-${area}`}>{AREA_HEADING[area]}</h2>
+    <p class="group-tag">
+      <AreaTag area={area} />
+    </p>
+    {rows.map((p) => (
+      <ProjectRow project={p} />
+    ))}
+  </section>
+))}
+<p class="all-work">
+  <a href="/projects/">All projects, filterable by area</a>
+</p>
+
+<section class="block" aria-labelledby="lab">
+  <h2 id="lab">The Lab</h2>
+  <p class="prose">Three small interactive demos, one per role, each loaded only when you open it.</p>
+  <dl class="lab">
+    <div>
+      <dt>
+        <AreaTag area="ml" /> Train a network in your browser
+      </dt>
+      <dd class="prose">
+        Place points of two classes and watch a small neural network learn to separate them, with its weights
+        drawn in 3D.
+      </dd>
+    </div>
+    <div>
+      <dt>
+        <AreaTag area="llm" /> Watch attention
+      </dt>
+      <dd class="prose">
+        Pick a sentence and see how a small language model splits it into tokens and which tokens attend to
+        which, layer by layer.
+      </dd>
+    </div>
+    <div>
+      <dt>
+        <AreaTag area="sde" /> Scale a system
+      </dt>
+      <dd class="prose">
+        Change traffic, add replicas or a cache, or break something, and watch latency, throughput and errors
+        respond.
+      </dd>
+    </div>
+  </dl>
+</section>
+
+<section class="block" aria-labelledby="experience">
+  <h2 id="experience">Experience</h2>
+  <ol class="roles">
+    {roles.map((r) => (
+      <li>
+        <p class="role-title">
+          <Edit text={r.data.title} />
+          {', '}
+          <Edit text={r.data.company} />
+        </p>
+        <p class="small muted">
+          {month(r.data.start)} to {month(r.data.end)}
+        </p>
+      </li>
+    ))}
+  </ol>
+  <p>
+    <a href="/experience/">Full experience, education and awards</a>
+  </p>
+</section>
+
+<section class="block" aria-labelledby="skills">
+  <h2 id="skills">Skills, with evidence</h2>
+  <p class="prose">Each skill links to the work that shows it.</p>
+  <div class="skills">
+    {skillGroups.map(([key, label]) => (
+      <section aria-labelledby={`skills-${key}`}>
+        <h3 id={`skills-${key}`}>{key === 'mlops' ? label : <AreaTag area={key} />}</h3>
+        <ul>
+          {site.skills[key].map((s) => (
+            <li>
+              <span class="skill">{s.name}</span>
+              <span class="evidence small">
+                {s.evidence.map((id, i) => (
+                  <>
+                    {i > 0 && ', '}
+                    <a href={projectName.has(id) ? `/projects/${id}/` : '/experience/'}>
+                      {projectName.get(id) ?? roleName.get(id) ?? id}
+                    </a>
+                  </>
+                ))}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </div>
+</section>
+
+<section class="block" aria-labelledby="awards">
+  <h2 id="awards">Education and awards</h2>
+  <ul class="plain">
+    {site.education.map((e) => (
+      <li>
+        <Edit text={`${e.degree}, ${e.school}, ${e.year}`} />
+      </li>
+    ))}
+    {site.awards.map((a) => (
+      <li>
+        <Edit text={`${a.name}, ${a.year}: ${a.detail}`} />
+      </li>
+    ))}
+  </ul>
+</section>
+
+<section class="block contact" aria-labelledby="contact" data-world-formation="converge">
+  <div class="world-window" data-world-window aria-hidden="true"></div>
+  <h2 id="contact">Contact</h2>
+  <p class="prose">
+    I'm looking for {lens ? `${AREA_LABEL[lens]} roles` : 'SDE, LLM and AI/ML roles'}. The quickest way to
+    reach me is email.
+  </p>
+  <ul class="actions">
+    <li>
+      <a class="button" data-primary href={`mailto:${strip(links.email)}`}>
+        {strip(links.email)}
+      </a>
+    </li>
+    <li>
+      <a class="button" href={strip(links.linkedin)}>
+        LinkedIn
+      </a>
+    </li>
+    <li>
+      <a class="button" href={strip(links.github)}>
+        GitHub
+      </a>
+    </li>
+  </ul>
+</section>
+
+<style>
+  .hero {
+    display: grid;
+    gap: var(--space-4);
+    max-width: 44rem;
+    min-height: min(46rem, calc(100svh - 8rem));
+    align-content: center;
+  }
+
+  h1 {
+    font-size: var(--step-display);
+    line-height: 0.98;
+    font-variation-settings: 'wdth' 116;
+  }
+
+  .role {
+    font-size: var(--step-lead);
+    line-height: 1.4;
+    font-weight: 520;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: var(--space-2) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .block {
+    margin-top: var(--space-9);
+    max-width: 44rem;
+  }
+
+  .block > h2 {
+    margin-bottom: var(--space-4);
+  }
+
+  .group {
+    min-height: 60vh;
+  }
+
+  .group-tag {
+    margin-bottom: var(--space-4);
+  }
+
+  .impact {
+    display: grid;
+    gap: var(--space-4);
+    padding-inline-start: 1.1em;
+  }
+
+  .all-work {
+    margin-top: var(--space-5);
+  }
+
+  .lab {
+    display: grid;
+    gap: var(--space-5);
+    margin: var(--space-5) 0 0;
+  }
+
+  .lab dt {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    align-items: center;
+    font-weight: 560;
+  }
+
+  .lab dd {
+    margin: var(--space-1) 0 0;
+  }
+
+  .roles,
+  .plain {
+    display: grid;
+    gap: var(--space-4);
+    margin: 0 0 var(--space-4);
+    padding: 0;
+    list-style: none;
+  }
+
+  .role-title {
+    font-weight: 560;
+  }
+
+  .skills {
+    display: grid;
+    gap: var(--space-6);
+    margin-top: var(--space-5);
+  }
+
+  .skills h3 {
+    font-size: var(--step-ui);
+    font-weight: 560;
+    margin-bottom: var(--space-3);
+  }
+
+  .skills ul {
+    display: grid;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .skills li {
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  .evidence a {
+    display: inline-block;
+    padding-block: 2px;
+  }
+
+  .contact {
+    min-height: 70vh;
+  }
+
+  /* Narrow screens: text sits on solid ground between windows onto the world. */
+  @media (max-width: 899px), (max-aspect-ratio: 11/10) {
+    .hero {
+      min-height: 0;
+    }
+
+    .group,
+    .contact {
+      min-height: 0;
+    }
+  }
+</style>

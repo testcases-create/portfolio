@@ -1,0 +1,52 @@
+---
+import Base from '../layouts/Base.astro';
+import Edit from '../components/Edit.astro';
+import { site } from '../lib/site';
+import { strip } from '../lib/placeholders';
+
+const { links } = site;
+const rows = [
+  { label: 'Email', href: `mailto:${strip(links.email)}`, text: links.email },
+  { label: 'LinkedIn', href: strip(links.linkedin), text: links.linkedin },
+  { label: 'GitHub', href: strip(links.github), text: links.github },
+];
+---
+
+<Base title="Contact" description="Email is the quickest way to reach me." formation="converge">
+  <h1>Contact</h1>
+  <p class="prose lead">
+    <Edit text="Email is the quickest way to reach me. I reply within two working days. [EDIT]" />
+  </p>
+  <dl class="contacts">
+    {rows.map((r) => (
+      <div>
+        <dt class="small muted">{r.label}</dt>
+        <dd>
+          <a href={r.href}>
+            <Edit text={r.text.replace(/^https?:\/\//, '')} />
+          </a>
+        </dd>
+      </div>
+    ))}
+  </dl>
+  <p class="small muted">
+    <Edit text={`${site.availability}. ${site.location}.`} />
+  </p>
+</Base>
+
+<style>
+  .lead {
+    margin-top: var(--space-4);
+  }
+
+  .contacts {
+    display: grid;
+    gap: var(--space-4);
+    margin: var(--space-6) 0;
+  }
+
+  dd {
+    margin: var(--space-1) 0 0;
+    font-size: var(--step-lead);
+  }
+</style>

@@ -1,0 +1,256 @@
+---
+// Presentation mode: a project as full-screen slides for "walk me through a
+// project" interviews. Without JavaScript the slides stack and scroll; with it,
+// one slide shows at a time, driven by arrow keys, clicks or the buttons.
+import type { GetStaticPaths } from 'astro';
+import { Code } from 'astro:components';
+import { getEntry } from 'astro:content';
+import Base from '../../../layouts/Base.astro';
+import AreaTag from '../../../components/AreaTag.astro';
+import ArchitectureDiagram from '../../../components/ArchitectureDiagram.astro';
+import Edit from '../../../components/Edit.astro';
+import Metric from '../../../components/Metric.astro';
+import { allProjects } from '../../../lib/projects';
+import { strip } from '../../../lib/placeholders';
+
+export const getStaticPaths = (async () =>
+  (await allProjects()).map((project) => ({
+    params: { slug: project.id },
+    props: { project },
+  }))) satisfies GetStaticPaths;
+
+const { project } = Astro.props;
+const { data } = project;
+const arch = await getEntry(data.architecture);
+---
+
+<Base
+  title={`${strip(data.name)}: presentation`}
+  description={data.summary}
+  mode="off"
+  bare
+  canonicalPath={`/projects/${project.id}/`}
+>
+  <div class="deck" data-deck>
+    <section class="slide title-slide" aria-label="Title">
+      <p class="tags">
+        {data.areas.map((a) => (
+          <AreaTag area={a} />
+        ))}
+      </p>
+      <h1>
+        <Edit text={data.title} />
+      </h1>
+      <p class="sub">
+        <Edit text={data.outcomeHeadline} />
+      </p>
+      <p class="meta muted">
+        <Edit text={data.role} />
+      </p>
+    </section>
+
+    <section class="slide" aria-label="The problem">
+      <h2>The problem</h2>
+      <p class="big">
+        <Edit text={data.problem} />
+      </p>
+      <p class="muted">
+        <Edit text={`Team: ${data.team}. Timeline: ${data.timeline}.`} />
+      </p>
+    </section>
+
+    <section class="slide" aria-label="Results">
+      <h2>What changed</h2>
+      <dl class="metrics">
+        {data.metrics.map((m) => (
+          <Metric metric={m} />
+        ))}
+      </dl>
+    </section>
+
+    <section class="slide" aria-label="Architecture">
+      <h2>Architecture</h2>
+      <ArchitectureDiagram arch={arch.data} title={strip(data.name)} />
+    </section>
+
+    {data.decisions.map((d, i) => (
+      <section class="slide" aria-label={`Decision ${i + 1}`}>
+        <p class="muted">
+          Decision {i + 1} of {data.decisions.length}
+        </p>
+        <h2>
+          <Edit text={d.question} />
+        </h2>
+        <dl class="decision">
+          <div>
+            <dt>Options</dt>
+            <dd>{d.options.join(' · ')}</dd>
+          </div>
+          <div>
+            <dt>Chose</dt>
+            <dd class="big">
+              <Edit text={d.chose} />
+            </dd>
+          </div>
+          <div>
+            <dt>Trade-off</dt>
+            <dd>
+              <Edit text={d.tradeoff} />
+            </dd>
+          </div>
+          <div>
+            <dt>Evidence</dt>
+            <dd>
+              <Edit text={d.evidence} />
+            </dd>
+          </div>
+        </dl>
+      </section>
+    ))}
+
+    {data.code.map((c) => (
+      <section class="slide" aria-label={`Code: ${c.title}`}>
+        <h2>{c.title}</h2>
+        <Code
+          code={c.code.trimEnd()}
+          lang={c.lang}
+          themes={{ dark: 'github-dark-default', light: 'github-light-default' }}
+          defaultColor="dark"
+        />
+        <p class="why">
+          <Edit text={c.why} />
+        </p>
+      </section>
+    ))}
+
+    <section class="slide" aria-label="Questions">
+      <h2>Questions?</h2>
+      <p class="big">
+        <a href={`/projects/${project.id}/`}>Read the full write-up</a>
+      </p>
+    </section>
+  </div>
+
+  <nav class="controls" aria-label="Slides" data-deck-controls hidden>
+    <a class="button" href={`/projects/${project.id}/`}>
+      Exit
+    </a>
+    <button type="button" class="button" data-slide="prev">
+      Previous
+    </button>
+    <p class="counter" aria-live="polite" data-counter></p>
+    <button type="button" class="button" data-slide="next">
+      Next
+    </button>
+  </nav>
+</Base>
+
+<script>
+  import '../../../scripts/present';
+</script>
+
+<style>
+  .deck {
+    display: grid;
+  }
+
+  .slide {
+    min-height: 100svh;
+    padding: clamp(1.5rem, 5vw, 5rem);
+    display: grid;
+    align-content: center;
+    gap: var(--space-5);
+    border-bottom: 1px solid var(--line);
+    font-size: clamp(1.125rem, 0.9rem + 0.8vw, 1.5rem);
+  }
+
+  .slide h1 {
+    font-size: clamp(2.5rem, 1.5rem + 3.5vw, 5rem);
+    line-height: 1.02;
+    max-width: 20ch;
+  }
+
+  .slide h2 {
+    font-size: clamp(2rem, 1.3rem + 2.5vw, 3.5rem);
+    line-height: 1.08;
+    max-width: 24ch;
+  }
+
+  .sub,
+  .big {
+    font-size: clamp(1.375rem, 1rem + 1.4vw, 2.125rem);
+    line-height: 1.3;
+    max-width: 38ch;
+  }
+
+  .tags {
+    display: flex;
+    gap: var(--space-4);
+  }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: var(--space-6);
+    margin: 0;
+  }
+
+  .decision {
+    display: grid;
+    gap: var(--space-4);
+    margin: 0;
+    max-width: 60ch;
+  }
+
+  .decision dt {
+    font-size: var(--step-small);
+    color: var(--muted);
+  }
+
+  .decision dd {
+    margin: var(--space-1) 0 0;
+  }
+
+  .slide :global(pre) {
+    padding: var(--space-5);
+    overflow-x: auto;
+    font-size: clamp(0.8125rem, 0.6rem + 0.5vw, 1rem);
+    line-height: 1.55;
+    max-width: 100%;
+  }
+
+  .why {
+    max-width: 60ch;
+  }
+
+  .controls {
+    position: fixed;
+    right: var(--space-4);
+    bottom: var(--space-4);
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    background: var(--raised);
+  }
+
+  .controls[hidden] {
+    display: none;
+  }
+
+  .counter {
+    min-width: 4.5rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* With JavaScript: one slide at a time. */
+  :global(html.deck-js) .slide {
+    border-bottom: 0;
+  }
+
+  :global(html.deck-js) .slide:not([data-active]) {
+    display: none;
+  }
+</style>

@@ -17,9 +17,27 @@ interface Props {
   mode?: Mode;
   /** Role lenses point their canonical URL at Home. */
   canonicalPath?: string;
+  /** Open Graph image, a path under /og/. */
+  ogImage?: string;
+  /** Structured data for search engines. */
+  jsonLd?: Record<string, unknown>;
+  noindex?: boolean;
+  /** Presentation mode: no site header or footer. */
+  bare?: boolean;
 }
-const { title, description, formation = 'data', mode = 'full', canonicalPath } = Astro.props;
+const {
+  title,
+  description,
+  formation = 'data',
+  mode = 'full',
+  canonicalPath,
+  ogImage = '/og/default.png',
+  jsonLd,
+  noindex = false,
+  bare = false,
+} = Astro.props;
 const canonical = new URL(canonicalPath ?? Astro.url.pathname, Astro.site);
+const image = new URL(ogImage, Astro.site);
 const fullTitle = title === strip(site.name) ? title : `${title} · ${strip(site.name)}`;
 ---
 
@@ -36,6 +54,12 @@ const fullTitle = title === strip(site.name) ? title : `${title} · ${strip(site
     <meta property="og:description" content={strip(description)} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={image} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    {noindex && <meta name="robots" content="noindex" />}
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
     <meta name="color-scheme" content="dark light" />
     <Font cssVariable="--font-archivo" preload />
     <Font cssVariable="--font-source-serif" />
@@ -66,7 +90,7 @@ const fullTitle = title === strip(site.name) ? title : `${title} · ${strip(site
       Skip to content
     </a>
     <WorldSlot />
-    {mode === 'band' ? (
+    {bare ? null : mode === 'band' ? (
       // Project pages: the header and the world's band share one block of fixed height,
       // so the band is placed by CSS alone and never shifts the layout.
       <div class="band-top" data-world-band>
@@ -75,33 +99,49 @@ const fullTitle = title === strip(site.name) ? title : `${title} · ${strip(site
     ) : (
       <SiteHeader />
     )}
-    <main id="main" class="wrap">
+    <main id="main" class:list={[!bare && 'wrap']}>
       <slot />
     </main>
-    <footer class="site-footer wrap">
-      <button
-        type="button"
-        class="button"
-        data-action="stats"
-        aria-expanded="false"
-        aria-controls="world-stats"
-      >
-        Stats for nerds
-      </button>
-      <section id="world-stats" class="world-stats" aria-label="Graphics stats" hidden>
-        <label>
-          Graphics quality
-          <select id="world-tier">
-            <option value="auto">Automatic</option>
-            <option value="high">High (WebGPU)</option>
-            <option value="medium">Medium (WebGL2)</option>
-            <option value="low">Low (CPU)</option>
-            <option value="poster">Still image</option>
-          </select>
-        </label>
-        <dl></dl>
-      </section>
-    </footer>
+    {!bare && (
+      <footer class="site-footer wrap">
+        <ul class="footer-links">
+          <li>
+            <a href={`mailto:${strip(site.links.email)}`}>Email</a>
+          </li>
+          <li>
+            <a href={strip(site.links.linkedin)}>LinkedIn</a>
+          </li>
+          <li>
+            <a href={strip(site.links.github)}>GitHub</a>
+          </li>
+          <li>
+            <a href="/resume.pdf">Résumé (PDF)</a>
+          </li>
+        </ul>
+        <button
+          type="button"
+          class="button"
+          data-action="stats"
+          aria-expanded="false"
+          aria-controls="world-stats"
+        >
+          Stats for nerds
+        </button>
+        <section id="world-stats" class="world-stats" aria-label="Graphics stats" hidden>
+          <label>
+            Graphics quality
+            <select id="world-tier">
+              <option value="auto">Automatic</option>
+              <option value="high">High (WebGPU)</option>
+              <option value="medium">Medium (WebGL2)</option>
+              <option value="low">Low (CPU)</option>
+              <option value="poster">Still image</option>
+            </select>
+          </label>
+          <dl></dl>
+        </section>
+      </footer>
+    )}
     <script>
       import '../scripts/boot';
     </script>
@@ -127,6 +167,20 @@ const fullTitle = title === strip(site.name) ? title : `${title} · ${strip(site
     gap: var(--space-4);
     align-items: flex-start;
     padding-block: var(--space-6) var(--space-8);
+  }
+
+  .footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    margin: 0 auto 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .footer-links a {
+    display: inline-block;
+    padding-block: var(--space-2);
   }
 
   .world-stats {

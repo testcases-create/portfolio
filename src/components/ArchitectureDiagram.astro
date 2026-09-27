@@ -1,0 +1,170 @@
+---
+// The architecture as a static SVG, laid out at build time from the same data
+// the 3D explorer uses. A text list of components and flows sits beside it.
+import { layout, NODE_H, NODE_W } from '../lib/diagram';
+import type { Architecture } from '../lib/schemas';
+
+interface Props {
+  arch: Architecture;
+  title: string;
+}
+const { arch, title } = Astro.props;
+const { width, height, nodes, edges } = layout(arch);
+const id = `diagram-${Math.abs([...title].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7))}`;
+const kindLabel: Record<string, string> = {
+  client: 'client',
+  gateway: 'gateway',
+  service: 'service',
+  model: 'model',
+  store: 'data store',
+  queue: 'queue',
+  cache: 'cache',
+  external: 'external',
+};
+---
+
+<figure class="diagram">
+  <div class="scroll" tabindex="0" role="region" aria-labelledby={`${id}-title`}>
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      width={width}
+      height={height}
+      style={`--w: ${width}`}
+      role="img"
+      aria-labelledby={`${id}-title ${id}-desc`}
+    >
+      <title id={`${id}-title`}>Architecture: {title}</title>
+      <desc id={`${id}-desc`}>
+        {nodes.map((n) => n.label).join(', ')}. Connections:{' '}
+        {edges
+          .map(
+            (e) =>
+              `${nodes.find((n) => n.id === e.from)?.label} to ${nodes.find((n) => n.id === e.to)?.label}`,
+          )
+          .join('; ')}
+        .
+      </desc>
+      <defs>
+        <marker
+          id={`${id}-arrow`}
+          viewBox="0 0 8 8"
+          refX="7"
+          refY="4"
+          markerWidth="7"
+          markerHeight="7"
+          orient="auto"
+        >
+          <path d="M0,0 L8,4 L0,8 z" class="arrow"></path>
+        </marker>
+      </defs>
+      {edges.map((e) => (
+        <path d={e.d} class="edge" marker-end={`url(#${id}-arrow)`} />
+      ))}
+      {edges
+        .filter((e) => e.label)
+        .map((e) => (
+          <text x={e.lx} y={e.ly} class="edge-label" text-anchor="start">
+            {e.label}
+          </text>
+        ))}
+      {nodes.map((n) => (
+        <g class:list={['node', n.kind]} transform={`translate(${n.x} ${n.y})`}>
+          <rect width={NODE_W} height={NODE_H} rx="3" />
+          <text x={NODE_W / 2} y={NODE_H / 2 - 3} text-anchor="middle" class="node-label">
+            {n.label}
+          </text>
+          <text x={NODE_W / 2} y={NODE_H / 2 + 13} text-anchor="middle" class="node-kind">
+            {kindLabel[n.kind]}
+          </text>
+        </g>
+      ))}
+    </svg>
+  </div>
+  <figcaption class="small">
+    <p class="muted">Request flows</p>
+    <ol>
+      {arch.flows.map((f) => (
+        <li>
+          <strong>{f.name}:</strong>{' '}
+          {f.path.map((p) => nodes.find((n) => n.id === p)?.label ?? p).join(' → ')}
+        </li>
+      ))}
+    </ol>
+  </figcaption>
+</figure>
+
+<style>
+  .diagram {
+    margin: var(--space-5) 0;
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .scroll {
+    overflow-x: auto;
+    padding: var(--space-3);
+    background: var(--raised);
+  }
+
+  /* Never wider than the layout, never scaled up; on phones keep text legible and scroll. */
+  svg {
+    display: block;
+    width: 100%;
+    max-width: calc(var(--w) * 1px);
+    min-width: 32rem;
+    height: auto;
+    margin-inline: auto;
+    font-family: var(--face-sans);
+  }
+
+  .edge {
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 1.25;
+  }
+
+  .arrow {
+    fill: var(--muted);
+  }
+
+  .edge-label {
+    font-size: 11px;
+    fill: var(--muted);
+    paint-order: stroke;
+    stroke: var(--raised);
+    stroke-width: 4px;
+  }
+
+  .node rect {
+    fill: var(--ground);
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .node.external rect {
+    stroke-dasharray: 4 3;
+  }
+
+  .node.model rect,
+  .node.gateway rect {
+    stroke: var(--text);
+  }
+
+  .node-label {
+    font-size: 13px;
+    font-weight: 560;
+    fill: var(--text);
+  }
+
+  .node-kind {
+    font-size: 10.5px;
+    fill: var(--muted);
+  }
+
+  ol {
+    margin: var(--space-1) 0 0;
+    padding-inline-start: 1.2em;
+    display: grid;
+    gap: var(--space-1);
+  }
+</style>

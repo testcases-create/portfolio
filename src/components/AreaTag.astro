@@ -1,0 +1,13 @@
+---
+import { AREA_LABEL } from '../lib/projects';
+import type { Area } from '../lib/schemas';
+
+interface Props {
+  area: Area;
+}
+const { area } = Astro.props;
+---
+
+<span class="area" data-area={area}>
+  {AREA_LABEL[area]}
+</span>

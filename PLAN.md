@@ -1,6 +1,6 @@
 # Phase 0: plan and prototype
 
-Status: Phases 0 and 1 approved and merged. Phase 2 (graphics engine) complete; requirements in section 12, results in section 13. Waiting for your go-ahead before Phase 3.
+Status: Phases 0–2 approved and merged. Phase 3 (pages) complete; decisions in section 14, results in section 15.
 
 ## 1. The brief in five lines
 
@@ -563,3 +563,56 @@ These add to section 7. Where one changes an earlier decision, the note says so.
 
 **Deviations:** three decisions go beyond the plan. The Contact rings became a knot (note 6). The CPU simulation became its own chunk. Visitors with no usable GPU get the poster before the engine downloads (the brief's "low tier can't hold its frame rate" case, decided before any work is wasted).
 
+## 14. Phase 3 decisions (your go-ahead, 27 September 2026)
+
+**Engine budget raised from 300 KB to 320 KB (gzip), keeping ScrollTrigger.** The engine loads after first paint (on `load`, then idle), so it can't affect LCP, and its main-thread cost is gated by the poster decision and the probe. The extra 20 KB keeps GSAP ScrollTrigger, which the brief asks for, and leaves room for Phase 4's explorer to reuse the engine.
+
+**three.js is tree-shaken as far as it goes.** Measured with Rolldown on the exact imports the engine uses:
+
+| Import path | gzip |
+|---|---|
+| `three/webgpu` + `three/tsl` (current) | 243.4 KB |
+| `three/src/Three.WebGPU.js` + `Three.TSL.js` (source modules) | 340.1 KB: the package marks `src/nodes/**` as having side effects, so nothing tree-shakes |
+| Current, without bloom | 241.7 KB |
+| `WebGPURenderer` alone (the floor) | 211.2 KB |
+
+87% of what we ship from three.js is the renderer itself, both backends and the node system, which every WebGPU/TSL page pays. Our TSL functions add 32 KB over that floor, and bloom 1.7 KB.
+
+**PRs:** I open a pull request at the end of every phase.
+
+**Commits:** authored as Pavan Sai Kumar Dangeti, with the testcases-create noreply address until you send the pavan-dangeti one, plus a Co-authored-by trailer for Claude. Past commits are unchanged.
+
+
+## 15. Phase 3 results (27 September 2026)
+
+**Built:**
+
+- **Home and lenses:** Home, and role lenses at `/for/sde`, `/for/ml` and `/for/llm`, whose canonical link is `/`.
+- **Projects:** the projects index and a static page per area.
+- **Project deep dives:** the template with seven seed projects. Each has a TL;DR, Skim/Full, a sticky TOC with progress, the architecture diagram, decision cards, code with a "why", the next project and a CTA.
+- **Presentation mode:** for every project.
+- **Other pages:** Experience, About, Résumé (print CSS plus a generated one-page PDF), Contact and 404.
+- **SEO:** Open Graph cards for Home and each project, and JSON-LD `Person` on Home.
+
+**Measured:**
+
+| What | Result | Budget |
+|---|---|---|
+| Pages built | 37, all within budget | — |
+| Initial JS, most pages / project pages / Home and lenses | 8.9 / 9.5 / 39.5 KB | 50 KB |
+| Engine after first paint | 297.6 KB | 320 KB |
+| Lighthouse mobile, Home | 100/100/100/100; LCP 1.66 s (hero text), CLS 0.001, TBT 0 ms | 90, 2.0 s, 0.05, 200 ms |
+| Lighthouse mobile, projects index | 100/100/100/100; LCP 1.66 s | as above |
+| Lighthouse mobile, deep dive (inference-gateway) | 99/100/100/100; LCP 1.81 s, CLS 0.000 | as above |
+| Lighthouse mobile, presentation, résumé | 100/100/100/100; LCP 1.36–1.52 s, TBT ≤ 23 ms | as above |
+| Résumé PDF | 1 page, A4 | 1 page |
+| Tests | 110 unit, 71 end-to-end (axe on 12 page types, both themes) | — |
+| Strict `npm run build` | fails as designed while `[EDIT]` placeholders remain | — |
+
+**Deviations:**
+
+- **Diagram layout.** Diagrams lay out top to bottom rather than left to right, because the page is a narrow column. They scroll rather than scale below their natural size.
+- **Schema fields.** The project schema gained `name` (a short title for lists and slides), `problem` (≤ 240 characters) and `code` (≤ 2 snippets of ≤ 25 lines, each with a "why").
+- **Waiting for Phase 4.** The Lab teaser on Home has no links yet, and there is no "Explore in 3D" control. Both depend on Phase 4's pages.
+- **Poster on phones.** On narrow screens the poster appears in the gaps between text, like the live world, never behind text. In the hero's gap it is a CSS glow, so the hero text stays the LCP element.
+- **Presentation pages.** They don't load the engine. They are indexable, with a canonical link to their project; `noindex` cost 34 SEO points in Lighthouse and gained nothing.

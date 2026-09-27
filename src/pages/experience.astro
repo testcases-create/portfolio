@@ -1,0 +1,109 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Edit from '../components/Edit.astro';
+import { month } from '../lib/dates';
+import { site } from '../lib/site';
+
+const roles = (await getCollection('experience')).sort((a, b) => b.data.start.localeCompare(a.data.start));
+---
+
+<Base
+  title="Experience"
+  description="Roles, what I did in each and how it was measured, plus education and awards."
+>
+  <h1>Experience</h1>
+  <ol class="timeline">
+    {roles.map(({ data: r }) => (
+      <li>
+        <article>
+          <h2>
+            <Edit text={r.title} />
+            {', '}
+            <Edit text={r.company} />
+          </h2>
+          <p class="small muted">
+            {month(r.start)} to {month(r.end)}
+            {' · '}
+            <Edit text={r.location} />
+          </p>
+          <p class="note muted">
+            <Edit text={r.companyNote} />
+          </p>
+          <ul class="prose highlights">
+            {r.highlights.map((h) => (
+              <li>
+                <Edit text={h} />
+              </li>
+            ))}
+          </ul>
+          <p class="small">
+            <span class="muted">Stack: </span>
+            {r.stack.join(', ')}
+          </p>
+        </article>
+      </li>
+    ))}
+  </ol>
+
+  <section aria-labelledby="education">
+    <h2 id="education">Education</h2>
+    <ul class="plain">
+      {site.education.map((e) => (
+        <li>
+          <Edit text={`${e.degree}, ${e.school}, ${e.year}`} />
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section aria-labelledby="awards">
+    <h2 id="awards">Awards</h2>
+    <ul class="plain">
+      {site.awards.map((a) => (
+        <li>
+          <Edit text={`${a.name}, ${a.year}. ${a.detail}`} />
+        </li>
+      ))}
+    </ul>
+  </section>
+</Base>
+
+<style>
+  .timeline {
+    display: grid;
+    gap: var(--space-8);
+    margin: var(--space-7) 0;
+    padding: 0;
+    list-style: none;
+    max-width: 44rem;
+  }
+
+  h2 {
+    font-size: var(--step-sub);
+  }
+
+  .note {
+    margin-top: var(--space-2);
+  }
+
+  .highlights {
+    display: grid;
+    gap: var(--space-3);
+    margin: var(--space-4) 0;
+    padding-inline-start: 1.1em;
+  }
+
+  section {
+    margin-top: var(--space-7);
+    max-width: 44rem;
+  }
+
+  .plain {
+    display: grid;
+    gap: var(--space-3);
+    margin: var(--space-4) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+</style>

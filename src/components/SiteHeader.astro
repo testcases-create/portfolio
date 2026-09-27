@@ -2,7 +2,13 @@
 import { site } from '../lib/site';
 import { strip } from '../lib/placeholders';
 
-const nav = [{ href: '/projects/', label: 'Work' }];
+const nav = [
+  { href: '/projects/', label: 'Work' },
+  { href: '/experience/', label: 'Experience' },
+  { href: '/about/', label: 'About' },
+  { href: '/resume/', label: 'Résumé' },
+  { href: '/contact/', label: 'Contact' },
+];
 const path = Astro.url.pathname;
 ---
 
@@ -50,7 +56,8 @@ const path = Astro.url.pathname;
 
   ul {
     display: flex;
-    gap: var(--space-5);
+    flex-wrap: wrap;
+    gap: 0 var(--space-5);
     margin: 0;
     padding: 0;
     list-style: none;

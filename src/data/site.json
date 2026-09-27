@@ -6,7 +6,10 @@
     "llm": "LLM engineer who ships agents with evaluation, guardrails and cost controls",
     "ml": "ML engineer who trains models and runs them in production"
   },
-  "current": { "title": "ML platform engineer [EDIT]", "company": "Halden Systems [EDIT]" },
+  "current": {
+    "title": "ML platform engineer [EDIT]",
+    "company": "Halden Systems [EDIT]"
+  },
   "yearsExperience": "4 years [EDIT]",
   "positioning": "I build ML systems and LLM agents end to end, from the model to the interface people use, and run them in production. [EDIT]",
   "location": "Based in Bengaluru, open to relocation or remote [EDIT]",
@@ -25,10 +28,74 @@
     "I reduced escaped visual defects by 38% over a quarter of line data by training and shipping a segmentation model with drift monitoring. [EDIT]"
   ],
   "skills": {
-    "sde": [{ "name": "Go services under load", "evidence": ["inference-gateway"] }],
-    "llm": [],
-    "ml": [],
-    "mlops": [{ "name": "Model serving and rollback", "evidence": ["inference-gateway", "halden-systems"] }]
+    "sde": [
+      {
+        "name": "Go and Java services under load",
+        "evidence": ["inference-gateway", "order-fulfilment"]
+      },
+      {
+        "name": "Event-driven design (Kafka, outbox, idempotency)",
+        "evidence": ["order-fulfilment"]
+      },
+      {
+        "name": "Load and end-to-end testing (k6, Testcontainers, Playwright)",
+        "evidence": ["order-fulfilment", "this-site"]
+      },
+      {
+        "name": "Web graphics and performance (WebGPU, TypeScript)",
+        "evidence": ["this-site"]
+      }
+    ],
+    "llm": [
+      {
+        "name": "Tool-using agents with guardrails",
+        "evidence": ["support-agent"]
+      },
+      {
+        "name": "Retrieval (pgvector, re-ranking)",
+        "evidence": ["support-agent", "text-to-sql"]
+      },
+      {
+        "name": "LLM evaluation harnesses and CI gates",
+        "evidence": ["support-agent", "text-to-sql"]
+      },
+      {
+        "name": "Text-to-SQL with query validation",
+        "evidence": ["text-to-sql"]
+      }
+    ],
+    "ml": [
+      {
+        "name": "Computer vision (segmentation, detection)",
+        "evidence": ["defect-detection"]
+      },
+      {
+        "name": "Tabular models and leakage-safe evaluation",
+        "evidence": ["predictive-maintenance"]
+      },
+      {
+        "name": "PyTorch training and ONNX export",
+        "evidence": ["defect-detection"]
+      }
+    ],
+    "mlops": [
+      {
+        "name": "Model serving (Triton) and batching",
+        "evidence": ["inference-gateway", "defect-detection"]
+      },
+      {
+        "name": "Experiment tracking and registry (MLflow)",
+        "evidence": ["defect-detection", "halden-systems"]
+      },
+      {
+        "name": "Drift monitoring",
+        "evidence": ["defect-detection"]
+      },
+      {
+        "name": "Kubernetes and CI/CD with rollback",
+        "evidence": ["halden-systems", "order-fulfilment"]
+      }
+    ]
   },
   "education": [
     {
@@ -43,5 +110,10 @@
       "detail": "What was built and what the judges measured [EDIT]",
       "year": "2020 [EDIT]"
     }
+  ],
+  "about": [
+    "I started as a backend engineer, building order systems that had to stay correct at peak traffic. That taught me to measure before I optimise, and to design for the retry, the restart and the slow dependency. [EDIT]",
+    "At Halden I moved into ML, and found the same lessons apply: a model is only as good as the pipeline that trains, ships and watches it. I now build ML systems and LLM agents end to end, from the evaluation set to the interface people use. [EDIT]",
+    "Next, I'm looking for a team where models ship to real users and engineering quality is taken seriously: an SDE, LLM engineer or ML engineer role at a product company. [EDIT]"
   ]
 }

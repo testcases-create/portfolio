@@ -1,0 +1,13 @@
+nodes:
+  - { id: sensors, label: Equipment sensors, kind: client }
+  - { id: platform, label: Customer data platform, kind: store }
+  - { id: features, label: Feature job (Airflow), kind: service }
+  - { id: model, label: Failure model, kind: model }
+  - { id: tickets, label: Maintenance ticketing, kind: external }
+edges:
+  - { from: sensors, to: platform }
+  - { from: platform, to: features }
+  - { from: features, to: model }
+  - { from: model, to: tickets, label: alerts }
+flows:
+  - { name: Daily scoring, path: [sensors, platform, features, model, tickets] }

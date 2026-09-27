@@ -1,0 +1,19 @@
+nodes:
+  - { id: cameras, label: Line cameras, kind: client }
+  - { id: ingest, label: Ingest service, kind: service }
+  - { id: inference, label: Inference (Triton), kind: model }
+  - { id: registry, label: Model registry (MLflow), kind: store }
+  - { id: predictions, label: Prediction store, kind: store }
+  - { id: labelling, label: Labelling (Label Studio), kind: external }
+  - { id: training, label: Training pipeline (Airflow), kind: service }
+edges:
+  - { from: cameras, to: ingest }
+  - { from: ingest, to: inference }
+  - { from: inference, to: registry, label: loads model }
+  - { from: inference, to: predictions }
+  - { from: predictions, to: labelling, label: weekly sample }
+  - { from: labelling, to: training }
+  - { from: training, to: registry, label: promote }
+flows:
+  - { name: Inspect a board, path: [cameras, ingest, inference, predictions] }
+  - { name: Retrain, path: [predictions, labelling, training, registry] }
