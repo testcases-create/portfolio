@@ -46,8 +46,8 @@ particle toward the blend. _Where:_ `src/graphics/formations.ts`,
 **The CPU version is the specification.** The simulation exists twice: a
 GPU compute kernel (TSL, which compiles to WebGPU and to WebGL2) and a plain
 TypeScript version. The TypeScript one runs the low tier and is unit-tested.
-A Playwright test steps the real GPU kernel once, reads the buffers back, and
-checks they match the CPU version to within 0.2%. When I changed one
+A Playwright test steps the real GPU kernel once on WebGL2 and on WebGPU, reads
+the buffers back, and checks they match the CPU version to within 0.2%. When I changed one
 constant in the GPU code only, that test failed. _Where:_
 `src/graphics/sim.gpu.ts`, `src/graphics/sim.cpu.ts`,
 `tests/e2e/world.spec.ts`.
@@ -77,8 +77,9 @@ main thread for 2.4 seconds per frame. _Where:_ `src/lib/gpu-check.ts`,
 
 **Failing safely.** Some browsers grant WebGPU but reject a descriptor Three
 passes, and the render then throws on every frame. The frame loop catches
-that, drops bloom first, then gives up the tier and steps down. The result
-is a slower world instead of a blank one. _Where:_ `frame()` in
+that, drops bloom first, then gives up the tier and steps down. A lost GPU
+device (a driver reset, for example) is handled the same way. The result is
+a slower world instead of a blank one. _Where:_ `frame()` in
 `src/graphics/world.ts`.
 
 **A camera that makes it read as 3D.** Each formation has a camera pose. The

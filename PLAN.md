@@ -547,19 +547,19 @@ These add to section 7. Where one changes an earlier decision, the note says so.
 |---|---|---|
 | Initial JS, most pages | 8.8 KB | 50 KB |
 | Initial JS, Home (includes GSAP core + SplitText intro) | 39.4 KB | 50 KB |
-| Engine after first paint, most pages | 297.5 KB (three.js 243.4, GSAP core + ScrollTrigger 44.2, world code about 10) | 300 KB |
+| Engine after first paint, most pages | 297.6 KB (three.js 243.4, GSAP core + ScrollTrigger 44.2, world code about 10) | 300 KB |
 | Engine after first paint, Home (GSAP already loaded) | 270.5 KB | 300 KB |
 | CPU simulation, low tier only (own chunk) | 1.8 KB | — |
 | Poster stills | 16.2 / 16.1 KB wide, 11.8 / 11.5 KB narrow | 60 KB / 25 KB |
 | Lighthouse mobile, Home | Performance 99; LCP 1.81 s, CLS 0.001, TBT 0 ms | 90, 2.0 s, 0.05, 200 ms |
 | Lighthouse mobile, project page | Performance 100; CLS 0.012, TBT 0 ms | 95 |
-| GPU kernel against CPU spec (WebGL2, all formations and a blend) | max relative error below 0.2% | test tolerance |
+| GPU kernel against CPU spec (WebGL2 and WebGPU, all formations and a blend) | max relative error below 0.2% | test tolerance |
 
 **What these numbers don't cover:**
-- **No GPU here.** This container has no GPU and its Chromium is 141. WebGPU renders nothing: Three r186 passes a texture-view `swizzle` that this Chromium rejects. The engine now catches that and steps down, which is how I found the problem. So the high tier, bloom and the WebGPU parity test are unverified here; that test skips itself when the browser falls back. CI installs Playwright's newer Chromium, where it may run.
+- **No GPU here.** This container has no GPU and its Chromium is 141. WebGPU compute works here, and the parity test checks the WebGPU kernel against the CPU specification. WebGPU rendering does not: Three r186 passes a texture-view `swizzle` that this Chromium rejects. The engine catches that and steps down, which is how I found it. Bloom and high-tier visuals are therefore unverified here. CI's Chromium 153 does start the high tier. Its first run lost the GPU device during the parity test; the engine now treats device loss as a render failure and steps down, and the parity test runs paused so it depends only on compute.
 - **Software-rendered visuals.** Visual review used the medium tier under SwiftShader at about 1.6 frames per second.
 - **Lighthouse measures the poster path.** Lighthouse runs without a GPU, so it scores the poster page and never runs the engine. Frame rates and engine main-thread cost need real hardware (Phase 5).
-- **Engine headroom.** The engine has 2.5 KB of headroom. Nearly all of it is three.js and GSAP; the only big saving would be dropping ScrollTrigger, which the brief requires.
+- **Engine headroom.** The engine has 2.4 KB of headroom. Nearly all of it is three.js and GSAP; the only big saving would be dropping ScrollTrigger, which the brief requires.
 
 **Deviations:** three decisions go beyond the plan. The Contact rings became a knot (note 6). The CPU simulation became its own chunk. Visitors with no usable GPU get the poster before the engine downloads (the brief's "low tier can't hold its frame rate" case, decided before any work is wasted).
 

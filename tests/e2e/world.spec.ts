@@ -123,10 +123,21 @@ test('Stats for nerds reports the tier, backend and particle count', async ({ pa
  * result with the CPU specification stepping from the same state.
  */
 async function parity(page: Page, backend: 'webgl2' | 'webgpu') {
+  // A small viewport keeps each frame cheap on software GPUs (CI has no GPU).
+  await page.setViewportSize({ width: 320, height: 240 });
+  const logs: string[] = [];
+  page.on(
+    'console',
+    (m) => (m.type() === 'error' || m.type() === 'warning') && logs.push(m.text().slice(0, 300)),
+  );
+  page.on('pageerror', (e) => logs.push(`page error: ${e.message.slice(0, 300)}`));
   await ready(page);
+  // Start paused: the world initialises on the requested backend but draws no
+  // frames, so the comparison depends only on the compute kernel.
+  await page.addInitScript(() => localStorage.setItem('pref:paused', '1'));
   await page.goto(world('/dev/world/', backend === 'webgpu' ? 'high' : 'medium', 'world-debug'));
   await expect(html(page)).toHaveAttribute('data-world-ready', 'true', { timeout: 30_000 });
-  await page.waitForTimeout(1000);
+  await expect(html(page)).toHaveAttribute('data-world-running', 'false');
   const actual = await html(page).getAttribute('data-world-backend');
   test.skip(actual !== backend, `this browser build fell back from ${backend} to ${actual}`);
 
@@ -156,28 +167,34 @@ async function parity(page: Page, backend: 'webgl2' | 'webgpu') {
       llm: colour.llm as SimInputs['llm'],
       ml: colour.ml as SimInputs['ml'],
     };
-    const r = await page.evaluate(async (inp) => {
-      const w = (
-        window as unknown as { __world: { stop(): void; step(i: unknown): Promise<Record<string, unknown>> } }
-      ).__world;
-      w.stop();
-      const res = (await w.step(inp)) as {
-        before: { pos: Float32Array; vel: Float32Array };
-        after: { pos: Float32Array; vel: Float32Array; col: Float32Array };
-        form: Float32Array;
-        hash: Float32Array;
-        n: number;
-      };
-      const arr = (a: Float32Array) => Array.from(a);
-      return {
-        n: res.n,
-        form: arr(res.form),
-        hash: arr(res.hash),
-        pos: arr(res.before.pos),
-        vel: arr(res.before.vel),
-        after: { pos: arr(res.after.pos), vel: arr(res.after.vel), col: arr(res.after.col) },
-      };
-    }, input);
+    const r = await page
+      .evaluate(async (inp) => {
+        const w = (
+          window as unknown as {
+            __world: { stop(): void; step(i: unknown): Promise<Record<string, unknown>> };
+          }
+        ).__world;
+        w.stop();
+        const res = (await w.step(inp)) as {
+          before: { pos: Float32Array; vel: Float32Array };
+          after: { pos: Float32Array; vel: Float32Array; col: Float32Array };
+          form: Float32Array;
+          hash: Float32Array;
+          n: number;
+        };
+        const arr = (a: Float32Array) => Array.from(a);
+        return {
+          n: res.n,
+          form: arr(res.form),
+          hash: arr(res.hash),
+          pos: arr(res.before.pos),
+          vel: arr(res.before.vel),
+          after: { pos: arr(res.after.pos), vel: arr(res.after.vel), col: arr(res.after.col) },
+        };
+      }, input)
+      .catch((error: Error) => {
+        throw new Error(`${error.message}\nPage console:\n${logs.join('\n') || '(empty)'}`);
+      });
 
     expect(r.form.length).toBe(r.n * FLOATS_PER_PARTICLE);
     const S = {

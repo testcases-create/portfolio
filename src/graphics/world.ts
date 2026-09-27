@@ -74,6 +74,17 @@ export async function createWorld(
     trackTimestamp: tier.backend === 'webgpu',
   });
   await renderer.init();
+  let failed = false;
+  let disposed = false;
+  // A lost GPU device (driver reset, GPU watchdog, memory pressure) would leave
+  // a silent, frozen world. Treat it like any other render failure.
+  renderer.onDeviceLost = (info) => {
+    if (disposed || failed) return;
+    failed = true;
+    console.error(`World: the GPU device was lost (${info.message}).`);
+    void renderer.setAnimationLoop(null);
+    hooks.onFailure(new Error(`GPU device lost: ${info.message}`));
+  };
   renderer.setClearColor(0x000000, 0);
   renderer.domElement.className = 'world-canvas';
   host.prepend(renderer.domElement);
@@ -324,7 +335,6 @@ export async function createWorld(
    * world with no error is the worst outcome, so: first drop bloom, then give
    * the tier up and let the controller step down.
    */
-  let failed = false;
   function frame() {
     if (failed) return;
     try {
@@ -382,8 +392,11 @@ export async function createWorld(
         pos: new Float32Array(await renderer.getArrayBufferAsync(gpu.pos.value)),
         vel: new Float32Array(await renderer.getArrayBufferAsync(gpu.vel.value)),
       });
-      const before = await read();
+      // One warm-up step makes Three upload the buffers even if no frame was ever
+      // drawn (tests start the world paused); the comparison starts from its result.
       writeUniforms(U, input);
+      await renderer.computeAsync(gpu.compute);
+      const before = await read();
       await renderer.computeAsync(gpu.compute);
       const after = {
         ...(await read()),
@@ -392,6 +405,7 @@ export async function createWorld(
       return { before, after, form, hash, n };
     },
     dispose() {
+      disposed = true;
       void renderer.setAnimationLoop(null);
       labels.dispose();
       material.dispose();
