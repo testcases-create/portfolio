@@ -2,6 +2,7 @@
 // and works without a 3D view (the poster tier), which is what most of these
 // tests use so they stay fast. The 3D views and GPU training run in separate,
 // desktop-only tests.
+import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -98,7 +99,10 @@ test.describe('on the poster tier', () => {
   test('watch attention: choose a token and read where it looks', async ({ page }) => {
     await page.goto('/lab/');
     const demo = await open(page, 'watch-attention');
-    await expect(demo.locator('[data-source]')).toContainText('Sample data');
+    // The notice shows only while the file holds the rule-based sample.
+    const source = JSON.parse(readFileSync('public/lab/attention.json', 'utf8')).source;
+    if (source === 'sample') await expect(demo.locator('[data-source]')).toContainText('Sample data');
+    else await expect(demo.locator('[data-source]')).toBeHidden();
     await demo
       .getByLabel('Sentence')
       .selectOption({ label: 'She put the book on the table because it was heavy.' });
@@ -148,6 +152,9 @@ test.describe('with 3D', () => {
   test.beforeEach(tier('medium'));
 
   test('each demo draws its 3D view when the tier allows one', async ({ page }) => {
+    // Three renderers start in turn; without a GPU (CI, containers) that takes
+    // about 23 s, close to the default 30 s limit, so give it more room.
+    test.slow();
     await page.goto('/lab/');
     for (const d of ['train-network', 'watch-attention', 'scale-system']) {
       const demo = await open(page, d);

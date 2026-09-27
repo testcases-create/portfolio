@@ -43,6 +43,10 @@ jobs:
       - name: Lighthouse CI
         run: npm run lhci
 
+      # Last, because it replaces dist/: the build Netlify publishes until launch.
+      - name: Demo build (noindex, badges, no sitemap)
+        run: npm run build:demo && npm run check-demo
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

@@ -126,9 +126,37 @@ function renderStats(): void {
 document.addEventListener('astro:after-swap', applyState);
 applyState();
 
-// The hero intro: only on a page that has one, once per session, never with reduced motion.
+/**
+ * Runs `fn` once the browser reports its first contentful paint (or after 1 s,
+ * for a tab that never paints, such as one opened in the background).
+ * requestAnimationFrame is not enough: it runs before that frame is painted.
+ */
+function afterFirstPaint(fn: () => void): void {
+  let done = false;
+  const go = () => {
+    if (done) return;
+    done = true;
+    fn();
+  };
+  try {
+    new PerformanceObserver((list, observer) => {
+      if (!list.getEntriesByName('first-contentful-paint').length) return;
+      observer.disconnect();
+      go();
+    }).observe({ type: 'paint', buffered: true });
+  } catch {
+    // No paint timing in this browser: the timeout below starts it.
+  }
+  setTimeout(go, 1000);
+}
+
+// The hero intro: only on a page that has one, once per session, never with
+// reduced motion. Its chunk (GSAP and SplitText, about 30 KB) is requested
+// just after the first paint rather than straight away, so on a slow
+// connection it doesn't compete with the CSS and fonts the hero text needs.
+// The headline is already on screen as a ghost, so nothing waits for it.
 if (root.classList.contains('intro') && document.querySelector('[data-world-intro]')) {
-  void import('../graphics/intro').then(({ runIntro }) => runIntro());
+  afterFirstPaint(() => void import('../graphics/intro').then(({ runIntro }) => runIntro()));
 } else {
   root.classList.remove('intro');
 }

@@ -1,18 +1,21 @@
 [build]
-  command = "npm run build"
+  # DEMO MODE: publishes the example persona with [EDIT] badges, noindex on
+  # every page and an X-Robots-Tag: noindex header on every file.
+  # AT LAUNCH, once `npm run check-content` reports nothing left, change this
+  # one line to `command = "npm run build"` (strict: fails on any placeholder).
+  command = "npm run build:demo"
   publish = "dist"
 
 [build.environment]
   NODE_VERSION = "22"
 
-# Previews show [EDIT] badges; production fails while any remain.
+# Deploy previews and branch deploys stay demo builds, before and after launch:
+# placeholders shown as badges, and never indexed.
 [context.deploy-preview]
-  command = "npm run build:preview"
-  environment = { ALLOW_PLACEHOLDERS = "1" }
+  command = "npm run build:demo"
 
 [context.branch-deploy]
-  command = "npm run build:preview"
-  environment = { ALLOW_PLACEHOLDERS = "1" }
+  command = "npm run build:demo"
 
 [[headers]]
   for = "/*"

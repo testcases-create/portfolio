@@ -64,7 +64,20 @@
             "largest-contentful-paint": [
               "error",
               {
-                "maxNumericValue": 2000
+                "maxNumericValue": 2000,
+                "aggregationMethod": "median"
+              }
+            ]
+          }
+        },
+        {
+          "matchingUrlPattern": "localhost(:\\d+)?/index\\.html$",
+          "assertions": {
+            "largest-contentful-paint": [
+              "warn",
+              {
+                "maxNumericValue": 1850,
+                "aggregationMethod": "median"
               }
             ]
           }
