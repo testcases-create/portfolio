@@ -433,3 +433,47 @@ the unit tests and lint before opening the pull request. It also starts CI on
 the new branch itself: GitHub doesn't start workflows for pushes made with a
 workflow's own token, except for an explicit `workflow_dispatch`, which CI now
 accepts. _Where:_ `.github/workflows/attention.yml`, `.github/workflows/ci.yml`.
+
+## The invisible world in the light theme (high tier)
+
+**The bug.** On a Mac in Chrome, the high tier (WebGPU) showed nothing in the
+light theme, while Stats for nerds reported 61 fps and "Bloom: on". The
+particles' material had a second output, "glow", which feeds the bloom pass.
+In three.js's WebGPU renderer, when the scene is drawn without that pass
+(through its own intermediate framebuffer), a material's extra outputs
+replace its normal colour output. Only signal particles wrote anything to
+"glow", so almost nothing reached the screen.
+
+The dark theme hid the bug, because it always drew through the bloom pass.
+But three other cases draw without the pass, and all three were broken:
+
+- the light theme;
+- the project-page header band;
+- the fallback after bloom fails.
+
+**The fix.** The glow output is attached only on frames the bloom pass
+actually draws, and removed otherwise. The Stats line now says what the frame
+does ("off in the light theme", "off in the header band"), not a fixed label.
+Bloom stays dark-only on purpose: it adds light, which on a light background
+only washes signals toward white. _Where:_ `setGlow` in
+`src/graphics/render.ts`, `bloomActive` in `src/graphics/world.ts`.
+
+**Light-theme visibility.** A script counted the pixels that clearly differ
+from the background, for every formation, tier and theme. The light theme
+reached only 70–85% of the dark theme's area, and the Data strands read as
+grey dust. The light settings now have more opacity (×4, was ×2.4) and
+full-size, softer sprites. Every formation now covers at least as much of the
+frame in light as in dark, on both the medium and low tiers. The colours are
+unchanged, so the contrast checks still pass. _Where:_ `SETTINGS.light` in
+`src/graphics/theme.ts`.
+
+**A test that looks at pixels.** `tests/e2e/visibility.spec.ts` renders each
+tier in the light theme. It counts visible particle pixels in the world's
+area at load, after switching to dark, and after switching back to light, and
+checks that light reads at least as well as dark. It uses the Data formation,
+which has no signals, so the glow bug would leave it blank. A tier the
+browser can't run is skipped, with the tier that actually ran recorded.
+Chromium 141 here can't render WebGPU, so the high tier runs only in CI.
+
+**CI runs on main.** Every commit on main now gets its own CI result. Before,
+a quick second merge cancelled the first merge's run.

@@ -32,11 +32,11 @@ export const SETTINGS: Record<'dark' | 'light', RenderSettings> = {
   },
   light: {
     blending: 'normal',
-    alphaScale: 2.4,
-    sizeScale: 0.82,
-    falloff: 30,
+    alphaScale: 4,
+    sizeScale: 1,
+    falloff: 24,
     tintBoost: 0.38,
-    depthFloor: 0.22,
+    depthFloor: 0.35,
     bloom: false,
   },
 };
