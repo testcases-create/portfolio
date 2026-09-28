@@ -9,7 +9,7 @@ import {
   knotPoint,
   knotSector,
   networkNodes,
-  scatter,
+  seed,
   tokenLayout,
 } from './formations';
 
@@ -95,10 +95,21 @@ describe('shapes', () => {
     expect(petals).toEqual(new Set([0, 1, 2]));
   });
 
-  it('scatters on a sphere of the given radius', () => {
-    const pos = new Float32Array(40);
-    scatter(pos, 10, 12);
-    for (let i = 0; i < 10; i++)
-      expect(Math.hypot(pos[i * 4] ?? 0, pos[i * 4 + 1] ?? 0, pos[i * 4 + 2] ?? 0)).toBeCloseTo(12, 3);
+  it('seeds the intro inside the first formation, shrunk around its centre', () => {
+    const pos = new Float32Array(n * 4);
+    seed(pos, data, n, 0.1);
+    const extent = (get: (i: number) => number) => {
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (let i = 0; i < n; i++) {
+        lo = Math.min(lo, get(i));
+        hi = Math.max(hi, get(i));
+      }
+      return hi - lo;
+    };
+    for (let j = 0; j < 3; j++) {
+      const target = extent((i) => data[i * FLOATS_PER_PARTICLE + j] ?? 0);
+      expect(extent((i) => pos[i * 4 + j] ?? 0)).toBeCloseTo(target * 0.1, 3);
+    }
   });
 });

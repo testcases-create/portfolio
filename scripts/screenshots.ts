@@ -44,15 +44,14 @@ const browser = await chromium.launch(
 for (const theme of ['dark', 'light'] as const) {
   for (const { w, h } of widths) {
     for (const p of pages) {
-      const context = await browser.newContext({ viewport: { width: w, height: h } });
-      await context.addInitScript(
-        ([t, tier]) => {
-          localStorage.setItem('pref:theme', t);
-          localStorage.setItem('pref:tier', tier);
-          sessionStorage.setItem('intro:seen', '1');
-        },
-        [theme, TIER] as const,
-      );
+      const context = await browser.newContext({
+        viewport: { width: w, height: h },
+        colorScheme: theme, // the theme follows the device's setting
+      });
+      await context.addInitScript((tier) => {
+        localStorage.setItem('pref:tier', tier);
+        sessionStorage.setItem('intro:seen', '1');
+      }, TIER);
       const page = await context.newPage();
       await page.goto(`${BASE}${p.path}`);
       for (const demo of p.open ?? []) {

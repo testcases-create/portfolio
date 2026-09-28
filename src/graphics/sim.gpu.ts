@@ -57,6 +57,7 @@ import {
   POINTER_GAIN,
   RIGID_AT,
   SIGNAL_GAIN,
+  SEED_SCALE,
   SIZE,
   STIFFNESS,
   type SimInputs,
@@ -72,6 +73,7 @@ export function createUniforms() {
     time: uniform(0),
     dt: uniform(1 / 60),
     assemble: uniform(1),
+    centre: uniform(new Vector3()),
     weights: Array.from({ length: K }, () => uniform(0)),
     cursor: uniform(0),
     front: uniform(0),
@@ -91,6 +93,7 @@ export function writeUniforms(u: Uniforms, s: SimInputs): void {
   u.time.value = s.time;
   u.dt.value = s.dt;
   u.assemble.value = s.assemble;
+  u.centre.value.set(...s.centre);
   u.weights.forEach((w, k) => (w.value = s.weights[k] ?? 0));
   u.cursor.value = s.cursor;
   u.front.value = s.front;
@@ -352,11 +355,15 @@ export function createGpuSim(
       size.addAssign(w.mul(SIZE[k] ?? 0));
     }
 
+    // The intro grows the formation out of its seed; at assemble 1 this changes nothing.
+    const g = U.assemble.mul(1 - SEED_SCALE).add(SEED_SCALE);
+    tgt.assign(U.centre.add(tgt.sub(U.centre).mul(g)));
+
     const d = U.pointer.sub(P);
     const pull = exp(dot(d, d).mul(-POINTER_FALLOFF)).mul(U.pointerStrength).mul(POINTER_GAIN);
     const force = tgt
       .sub(P)
-      .mul(stiff.mul(U.assemble))
+      .mul(stiff)
       .add(curlField(P.mul(CURL_SCALE), U.time).mul(flow.mul(CURL_GAIN)))
       .add(d.mul(pull));
     V.assign(V.mul(exp(U.dt.mul(-DAMPING))).add(force.mul(U.dt)));

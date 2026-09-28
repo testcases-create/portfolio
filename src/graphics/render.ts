@@ -42,6 +42,8 @@ export function createRenderUniforms() {
     depthNear: uniform(10),
     depthFar: uniform(20),
     depthFloor: uniform(0.3),
+    /** Intro fade-in: 0 at the seed, 1 once gathered. */
+    reveal: uniform(1),
   };
 }
 export type RenderUniforms = ReturnType<typeof createRenderUniforms>;
@@ -75,12 +77,14 @@ export function createParticles(
   // Signals (P.w) are drawn slightly larger than the rest.
   material.scaleNode = R.size.mul(V.w).mul(P.w.mul(0.45).add(1));
   material.colorNode = C.rgb;
-  material.opacityNode = C.a.mul(falloff).mul(mask).mul(depth);
+  material.opacityNode = C.a.mul(falloff).mul(mask).mul(depth).mul(R.reveal);
   // Only signals write to the glow target, so bloom never washes the whole frame.
   // The engine attaches this only on frames the bloom pass draws (setGlow):
   // rendered on its own, three.js would take a material's MRT as its only
   // output, and every non-signal particle would draw nothing.
-  const glow = withGlow ? mrt({ glow: vec4(C.rgb.mul(P.w), C.a.mul(falloff).mul(mask).mul(depth)) }) : null;
+  const glow = withGlow
+    ? mrt({ glow: vec4(C.rgb.mul(P.w), C.a.mul(falloff).mul(mask).mul(depth).mul(R.reveal)) })
+    : null;
 
   const sprite = new Sprite(material);
   sprite.count = n;

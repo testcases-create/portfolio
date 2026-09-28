@@ -33,6 +33,7 @@ it(`steps the low tier's ${TIERS.low.particles.toLocaleString('en')} particles w
     pointerStrength: 0,
     alpha: 0.4,
     tintBoost: 0,
+    centre: [0, 0, 0],
     neutral: [1, 1, 1],
     sde: [0, 0, 1],
     llm: [1, 1, 0],

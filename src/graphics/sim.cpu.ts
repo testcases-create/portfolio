@@ -19,6 +19,7 @@ import {
   DATA_SPIN,
   FLOW_AMP,
   KNOT_SPIN,
+  grow,
   POINTER_FALLOFF,
   POINTER_GAIN,
   RIGID_AT,
@@ -234,6 +235,7 @@ export function stepCpu(S: CpuState, U: SimInputs): void {
   const { n, form, hash, pos: P, vel: V, col: C } = S;
   const damp = Math.exp(-DAMPING * U.dt);
   const [px, py, pz] = U.pointer;
+  const [cx, cy, cz] = U.centre;
   const o = scratch;
   for (let i = 0; i < n; i++) {
     let tx = 0;
@@ -270,6 +272,11 @@ export function stepCpu(S: CpuState, U: SimInputs): void {
       rigid += o.rigid * w;
       size += (SIZE[k] ?? 0) * w;
     }
+    // The intro grows the formation out of its seed; at assemble 1 this changes nothing.
+    const g = grow(U.assemble);
+    tx = cx + (tx - cx) * g;
+    ty = cy + (ty - cy) * g;
+    tz = cz + (tz - cz) * g;
     const p = i * 4;
     let x = P[p] ?? 0;
     let y = P[p + 1] ?? 0;
@@ -280,7 +287,7 @@ export function stepCpu(S: CpuState, U: SimInputs): void {
     const dz = pz - z;
     const pull =
       Math.exp(-POINTER_FALLOFF * (dx * dx + dy * dy + dz * dz)) * U.pointerStrength * POINTER_GAIN;
-    const ks = stiff * U.assemble;
+    const ks = stiff;
     const f = flow * CURL_GAIN;
     let vx = (V[p] ?? 0) * damp + ((tx - x) * ks + (cu[0] ?? 0) * f + dx * pull) * U.dt;
     let vy = (V[p + 1] ?? 0) * damp + ((ty - y) * ks + (cu[1] ?? 0) * f + dy * pull) * U.dt;

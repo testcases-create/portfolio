@@ -39,10 +39,8 @@ async function visibleShare(page: Page, theme: 'dark' | 'light'): Promise<number
 }
 
 async function open(page: Page, tier: string, theme: 'dark' | 'light') {
-  await page.addInitScript((t) => {
-    sessionStorage.setItem('intro:seen', '1');
-    localStorage.setItem('pref:theme', t);
-  }, theme);
+  await page.emulateMedia({ colorScheme: theme });
+  await page.addInitScript(() => sessionStorage.setItem('intro:seen', '1'));
   // 4,096 particles keep software rendering fast; the render path is the tier's own.
   await page.goto(`/dev/world/?tier=${tier}&particles=4096`);
   await expect(page.locator('html')).toHaveAttribute('data-world-ready', 'true', { timeout: 60_000 });
@@ -53,9 +51,8 @@ async function open(page: Page, tier: string, theme: 'dark' | 'light') {
   });
 }
 
-/** The theme toggle, clicked through the DOM: the header is hidden while measuring. */
-const toggleTheme = (page: Page) =>
-  page.evaluate(() => document.querySelector<HTMLButtonElement>('[data-action="theme"]')?.click());
+/** Switches the device's light or dark setting, which the theme follows live. */
+const setTheme = (page: Page, theme: 'dark' | 'light') => page.emulateMedia({ colorScheme: theme });
 
 /** Waits for a few frames to be drawn, then measures. */
 async function settleAndMeasure(page: Page, theme: 'dark' | 'light') {
@@ -107,13 +104,13 @@ for (const tier of ['high', 'medium', 'low'] as const) {
     test.info().annotations.push({ type: 'tier', description: `${tier} ran as ${ran}` });
     const lightStats = await stats(page);
 
-    // Switching themes while running takes the other path through the render code.
-    await toggleTheme(page);
+    // Switching the device's theme while running takes the other path through the render code.
+    await setTheme(page, 'dark');
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     const dark = await settleAndMeasure(page, 'dark');
     const darkStats = await stats(page);
 
-    await toggleTheme(page);
+    await setTheme(page, 'light');
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
     const back = await settleAndMeasure(page, 'light');
 

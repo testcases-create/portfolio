@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { KEYS, readPaused, readTheme, write, type PreferenceStore } from './preferences';
+import { KEYS, readPaused, themeFor, write, type PreferenceStore } from './preferences';
 
 const memory = (): PreferenceStore => {
   const m = new Map<string, string>();
@@ -15,28 +15,24 @@ const broken: PreferenceStore = {
 };
 
 describe('preferences', () => {
-  it('defaults to dark and playing', () => {
-    expect(readTheme(memory())).toBe('dark');
-    expect(readPaused(memory())).toBe(false);
-    expect(readTheme(undefined)).toBe('dark');
+  it('takes the theme from the device, dark without a light preference', () => {
+    expect(themeFor(true)).toBe('light');
+    expect(themeFor(false)).toBe('dark');
   });
 
-  it('remembers light theme and pause', () => {
+  it('defaults to playing', () => {
+    expect(readPaused(memory())).toBe(false);
+    expect(readPaused(undefined)).toBe(false);
+  });
+
+  it('remembers pause', () => {
     const store = memory();
-    write(store, KEYS.theme, 'light');
     write(store, KEYS.paused, '1');
-    expect(readTheme(store)).toBe('light');
     expect(readPaused(store)).toBe(true);
   });
 
-  it('ignores unknown stored values', () => {
-    const store = memory();
-    write(store, KEYS.theme, 'sepia');
-    expect(readTheme(store)).toBe('dark');
-  });
-
   it('survives storage that throws', () => {
-    expect(() => write(broken, KEYS.theme, 'light')).not.toThrow();
-    expect(readTheme(broken)).toBe('dark');
+    expect(() => write(broken, KEYS.paused, '1')).not.toThrow();
+    expect(readPaused(broken)).toBe(false);
   });
 });

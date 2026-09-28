@@ -352,17 +352,33 @@ export function buildFormations(n: number, seed = 7): { data: Float32Array; hash
   return { data: out, hash };
 }
 
-/** Scatters particles on a sphere, where the intro gathers them from. */
-export function scatter(pos: Float32Array, n: number, radius = 12, seed = 3): void {
-  let a = seed;
-  const r = () => {
-    a = (a * 16807) % 2147483647;
-    return a / 2147483647;
-  };
+/** How big the intro's seed is, as a fraction of the formation's size. */
+export const SEED_SCALE = 0.08;
+
+/**
+ * Where the intro gathers particles from: the first formation shrunk to a
+ * small seed around its own centre, so the world grows out of one point in
+ * its own area instead of arriving from all over the screen.
+ */
+export function seed(
+  pos: Float32Array,
+  form: Float32Array,
+  n: number,
+  scale = SEED_SCALE,
+): [number, number, number] {
+  const at = (i: number, j: number) => form[i * FLOATS_PER_PARTICLE + j] ?? 0;
+  let cx = 0;
+  let cy = 0;
+  let cz = 0;
   for (let i = 0; i < n; i++) {
-    const y = r() * 2 - 1;
-    const th = r() * Math.PI * 2;
-    const rad = Math.sqrt(1 - y * y) * radius;
-    pos.set([Math.cos(th) * rad, y * radius, Math.sin(th) * rad, 0], i * 4);
+    cx += at(i, 0) / n;
+    cy += at(i, 1) / n;
+    cz += at(i, 2) / n;
   }
+  for (let i = 0; i < n; i++)
+    pos.set(
+      [cx + (at(i, 0) - cx) * scale, cy + (at(i, 1) - cy) * scale, cz + (at(i, 2) - cz) * scale],
+      i * 4,
+    );
+  return [cx, cy, cz];
 }
